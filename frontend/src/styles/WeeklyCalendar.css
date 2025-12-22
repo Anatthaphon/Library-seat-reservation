@@ -1,0 +1,141 @@
+.weekly-calendar {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e5e7eb;
+  margin-bottom: 1px;
+}
+
+.time-column-header {
+  background-color: white;
+}
+
+.day-header {
+  background-color: #2e7d32;
+  color: white;
+  padding: 12px;
+  text-align: center;
+}
+
+.day-name {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.day-date {
+  font-size: 14px;
+}
+
+.calendar-body {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e5e7eb;
+}
+
+.time-column {
+  background-color: white;
+}
+
+.time-slot {
+  height: 60px;
+  padding: 8px;
+  font-size: 12px;
+  color: #666;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.day-column {
+  position: relative;
+  background-color: white;
+}
+
+.hour-cell {
+  height: 60px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.hour-cell.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.hour-cell.clickable:hover {
+  background-color: #f0fdf4;
+}
+
+.hour-cell.disabled {
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+  opacity: 0.6;
+}
+
+.day-column.disabled {
+  opacity: 0.5;
+  background-color: #f9fafb;
+}
+
+.day-header.disabled {
+  background-color: #9ca3af;
+  opacity: 0.7;
+}
+
+/* Event Card */
+.schedule-event {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  padding: 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 3px solid;
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+.schedule-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Time badges - Grid 2 columns */
+.event-time {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.event-time-badge {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  text-align: center;
+}
+
+/* Title */
+.event-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 16px;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+/* Room */
+.event-room {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
