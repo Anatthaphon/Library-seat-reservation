@@ -3,7 +3,7 @@ import '../styles/WeeklyCalendar.css';
 
 const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) => {
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const timeSlots = Array.from({ length: 11 }, (_, i) => 9 + i);
+  const timeSlots = Array.from({ length: 10 }, (_, i) => 9 + i);
 
   // หาจันทร์ของสัปดาห์ปัจจุบัน
   const getMondayOfWeek = () => {
@@ -75,35 +75,20 @@ const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) =
     return durationMinutes;
   };
 
-  // ตรวจสอบว่าวันนี้สามารถจองได้หรือไม่ (3 วันข้างหน้า แต่ไม่นับวันอาทิตย์)
-  const isDateBookable = (date) => {
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
+  // ✅ จองได้ทุกวัน ยกเว้นวันอาทิตย์
+const isDateBookable = (date) => {
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
 
-    // วันอาทิตย์จองไม่ได้เลย
-    if (targetDate.getDay() === 0) {
-      return false;
-    }
+  // ❌ วันอาทิตย์จองไม่ได้
+  if (targetDate.getDay() === 0) {
+    return false;
+  }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // ✅ วันจันทร์–เสาร์ จองได้
+  return true;
+};
 
-    // นับจำนวนวันที่จองได้ (ไม่นับวันอาทิตย์) จากวันนี้ถึงวันที่เป็น target
-    let bookableDaysCount = 0;
-    let currentCheckDate = new Date(today);
-
-    while (currentCheckDate <= targetDate) {
-      // นับเฉพาะวันที่ไม่ใช่วันอาทิตย์
-      if (currentCheckDate.getDay() !== 0) {
-        bookableDaysCount++;
-      }
-      currentCheckDate.setDate(currentCheckDate.getDate() + 1);
-    }
-
-    // จองได้ถ้าอยู่ในช่วง 3 วันข้างหน้า (ไม่นับอาทิตย์)
-    // และ targetDate ไม่ก่อนวันนี้
-    return targetDate >= today && bookableDaysCount <= 3;
-  };
 
   const handleCellClick = (dayIndex, hour) => {
     const selectedDate = getDateForDay(dayIndex);

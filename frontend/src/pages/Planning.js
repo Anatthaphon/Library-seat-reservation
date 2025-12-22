@@ -36,10 +36,14 @@ const Planning = () => {
   };
 
   const handleCellClick = (dateTime) => {
-  console.log('Cell clicked:', dateTime);
-  console.log('Date object:', dateTime.date);
-  console.log('Date ISO:', dateTime.date.toISOString());
-  
+  const clickedDate = new Date(dateTime.date);
+
+  // ❌ วันอาทิตย์ห้ามทำอะไร
+  if (clickedDate.getDay() === 0) {
+    alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถแพลนได้ค่ะ');
+    return;
+  }
+
   setSelectedDateTime(dateTime);
   setSelectedEvent(null);
   setPopupType(1);
@@ -64,6 +68,12 @@ const Planning = () => {
       ? parseInt(selectedDateTime.startTime.split(':')[0])
       : (selectedEvent ? parseInt(selectedEvent.timeSlot.startTime.split(':')[0]) : 9);
     const endHour = startHour + duration;
+    // ❌ ห้ามจบเกิน 18:00
+  if (endHour > 18) {
+  alert('เวลาจองต้องไม่เกิน 18:00 น.');
+  return;
+}
+
     
     // ใช้วันที่จาก selectedDateTime (ถ้าสร้างใหม่) หรือ selectedEvent (ถ้าแก้ไข)
     let eventDate;
@@ -77,6 +87,13 @@ const Planning = () => {
       // fallback
       eventDate = new Date();
     }
+
+    // ❌ วันอาทิตย์ห้ามบันทึก
+if (eventDate.getDay() === 0) {
+  alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถแพลนได้ค่ะ');
+  return;
+}
+
     
     const localISOString = new Date(
   eventDate.getFullYear(),
@@ -98,7 +115,7 @@ const Planning = () => {
       instructor: user?.id,
       instructorName: user?.fullName || 'Unknown',
       room: selectedEvent?.room || `Room ${Math.floor(Math.random() * 400) + 100}`,
-      color: selectedEvent?.color || getRandomColor(),
+      color: getColorByDay(eventDate),
       type: 'lecture',
       status: 'scheduled'
     };
@@ -127,6 +144,23 @@ const Planning = () => {
     alert('Error saving event: ' + (error.response?.data?.error || error.message));
   }
 };
+
+const getColorByDay = (dateObj) => {
+  const d = dateObj.getDay(); // 0=Sun,1=Mon,...6=Sat
+
+  const dayColors = {
+    1: '#facc15', // จันทร์ - เหลือง
+    2: '#ec4899', // อังคาร - ชมพู
+    3: '#22c55e', // พุธ - เขียว
+    4: '#f97316', // พฤหัส - ส้ม
+    5: '#06b6d4', // ศุกร์ - ฟ้า
+    6: '#8b5cf6', // เสาร์ - ม่วง
+    0: '#9ca3af', // อาทิตย์ - เทา (แต่หนูบล็อกอยู่แล้ว)
+  };
+
+  return dayColors[d] || '#3b82f6';
+};
+
 
   const getRandomColor = () => {
     const colors = [
@@ -207,3 +241,4 @@ const Planning = () => {
 };
 
 export default Planning;
+
