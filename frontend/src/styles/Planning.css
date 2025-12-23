@@ -89,3 +89,47 @@
   color: #0369a1;
   font-weight: 500;
 }
+
+/* แถบยาวใต้ปฏิทิน */
+.reserve-bar {
+  width: 100%;
+  padding: 18px 20px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 8px 8px;
+}
+
+/* ปุ่ม Reserve สีเขียว */
+.reserve-btn {
+  width: 100%;            /* ✅ ยาวเต็ม */
+  display: block;
+
+  padding: 18px 0;
+  border-radius: 12px;
+  border: none;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  background-color: #22c55e;
+  color: #ffffff;
+
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.reserve-btn:hover {
+  background-color: #16a34a;
+  transform: translateY(-1px);
+}
+
+.reserve-btn:active {
+  transform: translateY(0px);
+}
+
+.reserve-btn:disabled {
+  background-color: #9ca3af;
+  opacity: 0.9;
+  cursor: not-allowed;
+  transform: none;
+}
