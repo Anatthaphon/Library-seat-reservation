@@ -1,0 +1,96 @@
+.seatmap-page {
+  padding: 24px;
+}
+
+.seatmap-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+}
+
+.slot-info .slot-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.slot-info .slot-sub {
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.screen {
+  margin: 18px 0;
+  padding: 10px;
+  text-align: center;
+  font-weight: 800;
+  border-radius: 12px;
+  background: #f3f4f6;
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.seat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-label {
+  width: 24px;
+  font-weight: 800;
+}
+
+.row-seats {
+  display: grid;
+  grid-template-columns: repeat(10, 42px);
+  gap: 10px;
+}
+
+.seat {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.seat.taken {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.seat.selected {
+  outline: 3px solid #22c55e;
+}
+
+.seatmap-footer {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confirm-btn {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 800;
+  cursor: pointer;
+  background: #22c55e;
+  color: white;
+}
