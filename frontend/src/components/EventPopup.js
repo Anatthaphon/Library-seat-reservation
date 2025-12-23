@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import '../styles/EventPopup.css'; 
 
 const EventPopup = ({ isOpen, onClose, onSave, eventData = null, type = 1 }) => {
@@ -40,9 +40,6 @@ const EventPopup = ({ isOpen, onClose, onSave, eventData = null, type = 1 }) => 
   return (
     <div className="event-popup-overlay" onClick={onClose}>
       {/* Header Label ด้านบนการ์ด */}
-      <div className="event-header-label">
-        Event {type === 1 ? '8' : type === 2 ? '7' : '9'}
-      </div>
       
       <div className="event-popup" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }}>
