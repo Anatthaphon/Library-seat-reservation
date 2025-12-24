@@ -9,61 +9,65 @@ export default function SeatMap() {
 
   // ===== Seats layout (match your Figma) =====
   const SEATS = useMemo(() => {
-    const leftX = 145;
-    const rightAX = 700;
-    const rightBX = 830;
+  // ===== ค่าหลัก (ปรับทั้งกลุ่มได้) =====
+  const LEFT_COL_X = 100;
+  const RIGHT_A_X = 750;
+  const RIGHT_B_X = 850;
 
-    const topY = 120;
-    const stepY = 62;
+  const TOP_Y = 90;
+  const B_TOP_Y = 70;
+  const B_STEP_Y = 50;
+  const STEP_Y = 57;
 
-    return [
-      // A1-A11 (left column)
-      ...Array.from({ length: 11 }, (_, i) => ({
-        id: `A${i + 1}`,
-        pos: { left: leftX, top: topY + i * stepY },
-      })),
+  const TOP_ROW_Y = 30;
+  const BOTTOM_ROW_Y = 695;
 
-      // Right A column (A22 down to A13)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: `A${22 - i}`, // A22..A13
-        pos: { left: rightAX, top: topY + i * stepY },
-      })),
+  return [
+    // ===== A1–A11 (ซ้าย แนวตั้ง) =====
+    ...Array.from({ length: 11 }, (_, i) => ({
+      id: `A${i + 1}`,
+      pos: { left: LEFT_COL_X, top: TOP_Y + i * STEP_Y },
+    })),
 
-      // Right B column (B4..B12)
-      ...Array.from({ length: 9 }, (_, i) => ({
-        id: `B${4 + i}`,
-        pos: { left: rightBX, top: topY + i * stepY },
-      })),
+    // ===== A13–A22 (ขวา แนวตั้ง) =====
+    ...Array.from({ length: 10 }, (_, i) => ({
+      id: `A${22 - i}`,
+      pos: { left: RIGHT_A_X, top: TOP_Y + i * STEP_Y },
+    })),
 
-      // Top row: C4, B1, B2, B3
-      { id: "C4-top", label: "C4", pos: { left: 650, top: 70 } },
-      { id: "B1", pos: { left: 770, top: 70 } },
-      { id: "B2", pos: { left: 830, top: 70 } },
-      { id: "B3", pos: { left: 890, top: 70 } },
+    // ===== B4–B12 (ขวาสุด แนวตั้ง) =====
+    ...Array.from({ length: 9 }, (_, i) => ({
+      id: `B${4 + i}`,
+      pos: { left: RIGHT_B_X, top: B_TOP_Y + i * B_STEP_Y },
+    })),
 
-      // Bottom row C4 (4 blocks)
-      { id: "C4-1", label: "C4", pos: { left: 360, top: 680 } },
-      { id: "C4-2", label: "C4", pos: { left: 520, top: 680 } },
-      { id: "C4-3", label: "C4", pos: { left: 660, top: 680 } },
-      { id: "C4-4", label: "C4", pos: { left: 780, top: 680 } },
+    // ===== แถวบน =====
+    { id: "C1", pos: { left: 630, top: TOP_ROW_Y } },
+    { id: "B1", pos: { left: 700, top: TOP_ROW_Y } },
+    { id: "B2", pos: { left: 757, top: TOP_ROW_Y } },
+    { id: "B3", pos: { left: 815, top: TOP_ROW_Y } },
 
+    // ===== แถวล่างกลาง =====
+    { id: "C4", pos: { left: 350, top: 735 } },
+    { id: "C5", pos: { left: 580, top: BOTTOM_ROW_Y } },
+    { id: "C6", pos: { left: 690, top: BOTTOM_ROW_Y } },
+    { id: "C7", pos: { left: 800, top: BOTTOM_ROW_Y } },
 
-      // C2, C3
-      { id: "C2", pos: { left: 260, top: 760 } },
-      { id: "C3", pos: { left: 420, top: 760 } },
+    // ===== C2, C3 =====
+    { id: "C2", pos: { left: 220, top: 800 } },
+    { id: "C3", pos: { left: 350, top: 800 } },
 
-      // B13-B15 triangle
-      { id: "B13", pos: { left: 95, top: 760 }, size: "tiny" },
-      { id: "B14", pos: { left: 145, top: 735 }, size: "tiny" },
-      { id: "B15", pos: { left: 145, top: 785 }, size: "tiny" },
-    ];
-  }, []);
+    // ===== B13–B15 (สามเหลี่ยม) =====
+    { id: "B13", pos: { left: 85, top: 790 }, size: "tiny" },
+    { id: "B14", pos: { left: 125, top: 790 }, size: "tiny" },
+    { id: "B15", pos: { left: 105, top: 820 }, size: "tiny" },
+
+  ];
+}, []);
 
   // Hooks must be above conditional return
-  const takenSeats = useMemo(
-    () => new Set(["A1", "A2", "B10", "C4-2"]), // ปรับได้ตามจริง
-    []
-  );
+  const takenSeats = useMemo(() => new Set(), []);
+
   const [selectedSeat, setSelectedSeat] = useState(null);
 
   if (!state) {
@@ -117,6 +121,7 @@ export default function SeatMap() {
 
       {/* ===== Canvas ===== */}
       <div className="seatmap-canvas">
+        <div className="map-zoom">
         <div className="map-frame">
           {/* Outer decoration like your figma */}
           <div className="top-left-bar" />
@@ -126,6 +131,7 @@ export default function SeatMap() {
             <div className="pillar" style={{ top: 390 }} />
             <div className="pillar" style={{ top: 560 }} />
           </div>
+        </div>
 
           {/* Exit label */}
           <div className="map-label exit">ทางหนีไฟ</div>
@@ -136,10 +142,20 @@ export default function SeatMap() {
           </div>
 
           {/* Computer + A12 */}
-          <div className="computer-zone">
+          <div
+            className="computer-zone"
+            style={{
+              left: 90,     // ขยับซ้ายอีกนิด
+              top: 730,      // ลงล่างเล็กน้อย
+              gap: 40,       // เพิ่มช่องระหว่าง A12 กับ Computer
+              bottom: "auto",
+            }}
+          >
             <div className="seat seat-abs fixed-seat">A12</div>
             <div className="computer-box">Computer</div>
           </div>
+
+
 
           {/* Control room */}
           <div className="control-room">ห้องควบคุมไฟฟ้า</div>
@@ -157,6 +173,7 @@ export default function SeatMap() {
                 className={[
                   "seat",
                   "seat-abs",
+                  /^B([1-9]|1[0-2])$/.test(seatId) ? "seat-b" : "",
                   s.size === "tiny" ? "seat-tiny" : "",
                   isTaken ? "taken" : "",
                   isSelected ? "selected" : "",
@@ -164,10 +181,10 @@ export default function SeatMap() {
                 style={{ left: s.pos.left, top: s.pos.top }}
                 onClick={() => handlePick(seatId)}
                 disabled={isTaken}
-                title={showText}
               >
                 {showText}
               </button>
+
             );
           })}
         </div>
