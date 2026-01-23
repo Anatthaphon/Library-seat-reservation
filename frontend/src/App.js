@@ -5,7 +5,7 @@ import './styles/App.css';
 // Pages
 import Planning from './pages/Planning';
 import SeatMap from './pages/SeatMap';
-
+import Reserve from './pages/reserve';
 // Components
 import Navbar from './components/Navbar';
 
@@ -18,10 +18,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/planning" replace />} />
             <Route path="/planning" element={<Planning />} />
-
+        
             {/* Seat map */}
             <Route path="/seat-map" element={<SeatMap />} />
             <Route path="/seatmap" element={<SeatMap />} />
+             <Route path="/reserve" element={<Reserve />} />
 
             {/* other routes... */}
           </Routes>
