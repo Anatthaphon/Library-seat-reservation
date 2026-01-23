@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 //import "./ReservePopup.css";
 
-
 export default function ReservePopup({ data, onClose }) {
   const navigate = useNavigate();
 
