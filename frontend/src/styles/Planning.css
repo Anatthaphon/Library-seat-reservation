@@ -133,3 +133,27 @@
   cursor: not-allowed;
   transform: none;
 }
+/* ===============================
+   FIX: Header วัน/วันที่ เขียว + ตัวหนังสือขาว
+================================ */
+
+/* react-big-calendar */
+.rbc-header {
+  background-color: #2e7d32 !important; /* เขียว */
+  color: #ffffff !important;           /* ขาว */
+  font-weight: 700;
+}
+
+/* ตัวหนังสือข้างใน */
+.rbc-header span,
+.rbc-header div {
+  color: #ffffff !important;
+}
+
+/* เผื่อ class อื่น */
+.day-header,
+.week-header {
+  background-color: #2e7d32 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
