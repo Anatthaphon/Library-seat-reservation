@@ -4,75 +4,69 @@ import "../styles/SeatMap.css";
 
 export default function SeatMap() {
   const location = useLocation();
-  const state = location.state;
   const navigate = useNavigate();
+  const state = location.state;
 
-  // ===== Seats layout (match your Figma) =====
+  // ===== Seats layout =====
   const SEATS = useMemo(() => {
-    const leftX = 145;
-    const rightAX = 700;
-    const rightBX = 830;
+    const LEFT_COL_X = 100;
+    const RIGHT_A_X = 750;
+    const RIGHT_B_X = 850;
 
-    const topY = 120;
-    const stepY = 62;
+    const TOP_Y = 90;
+    const B_TOP_Y = 70;
+    const B_STEP_Y = 50;
+    const STEP_Y = 57;
+
+    const TOP_ROW_Y = 30;
+    const BOTTOM_ROW_Y = 695;
 
     return [
-      // A1-A11 (left column)
       ...Array.from({ length: 11 }, (_, i) => ({
         id: `A${i + 1}`,
-        pos: { left: leftX, top: topY + i * stepY },
+        pos: { left: LEFT_COL_X, top: TOP_Y + i * STEP_Y },
       })),
 
-      // Right A column (A22 down to A13)
       ...Array.from({ length: 10 }, (_, i) => ({
-        id: `A${22 - i}`, // A22..A13
-        pos: { left: rightAX, top: topY + i * stepY },
+        id: `A${22 - i}`,
+        pos: { left: RIGHT_A_X, top: TOP_Y + i * STEP_Y },
       })),
 
-      // Right B column (B4..B12)
       ...Array.from({ length: 9 }, (_, i) => ({
         id: `B${4 + i}`,
-        pos: { left: rightBX, top: topY + i * stepY },
+        pos: { left: RIGHT_B_X, top: B_TOP_Y + i * B_STEP_Y },
       })),
 
-      // Top row: C4, B1, B2, B3
-      { id: "C4-top", label: "C4", pos: { left: 650, top: 70 } },
-      { id: "B1", pos: { left: 770, top: 70 } },
-      { id: "B2", pos: { left: 830, top: 70 } },
-      { id: "B3", pos: { left: 890, top: 70 } },
+      { id: "C1", pos: { left: 630, top: TOP_ROW_Y } },
+      { id: "B1", pos: { left: 700, top: TOP_ROW_Y } },
+      { id: "B2", pos: { left: 757, top: TOP_ROW_Y } },
+      { id: "B3", pos: { left: 815, top: TOP_ROW_Y } },
 
-      // Bottom row C4 (4 blocks)
-      { id: "C4-1", label: "C4", pos: { left: 360, top: 680 } },
-      { id: "C4-2", label: "C4", pos: { left: 520, top: 680 } },
-      { id: "C4-3", label: "C4", pos: { left: 660, top: 680 } },
-      { id: "C4-4", label: "C4", pos: { left: 780, top: 680 } },
+      { id: "C4", pos: { left: 350, top: 735 } },
+      { id: "C5", pos: { left: 580, top: BOTTOM_ROW_Y } },
+      { id: "C6", pos: { left: 690, top: BOTTOM_ROW_Y } },
+      { id: "C7", pos: { left: 800, top: BOTTOM_ROW_Y } },
 
+      { id: "C2", pos: { left: 220, top: 800 } },
+      { id: "C3", pos: { left: 350, top: 800 } },
 
-      // C2, C3
-      { id: "C2", pos: { left: 260, top: 760 } },
-      { id: "C3", pos: { left: 420, top: 760 } },
-
-      // B13-B15 triangle
-      { id: "B13", pos: { left: 95, top: 760 }, size: "tiny" },
-      { id: "B14", pos: { left: 145, top: 735 }, size: "tiny" },
-      { id: "B15", pos: { left: 145, top: 785 }, size: "tiny" },
+      { id: "B13", pos: { left: 85, top: 790 }, size: "tiny" },
+      { id: "B14", pos: { left: 125, top: 790 }, size: "tiny" },
+      { id: "B15", pos: { left: 105, top: 820 }, size: "tiny" },
     ];
   }, []);
 
-  // Hooks must be above conditional return
-  const takenSeats = useMemo(
-    () => new Set(["A1", "A2", "B10", "C4-2"]), // ปรับได้ตามจริง
-    []
-  );
+  const takenSeats = useMemo(() => new Set(), []);
   const [selectedSeat, setSelectedSeat] = useState(null);
 
+  // ===== กันกรณีเข้าหน้านี้แบบไม่ผ่าน popup =====
   if (!state) {
     return (
       <div className="seatmap-page" style={{ padding: 24 }}>
         <h2>ไม่มีข้อมูลการจอง</h2>
-        <p>กรุณากลับไปหน้า Planning แล้วกดปุ่ม Reserve ใหม่ค่ะ</p>
-        <button className="back-btn" onClick={() => navigate("/planning")}>
-          กลับไป Planning
+        <p>กรุณากลับไปหน้า Reserve แล้วเลือกเวลาใหม่</p>
+        <button onClick={() => navigate("/planning")}>
+          กลับไปหน้า Reserve
         </button>
       </div>
     );
@@ -83,19 +77,24 @@ export default function SeatMap() {
     setSelectedSeat(seatId);
   };
 
+  // 🔴 จุดสำคัญที่ “แก้จริง”
   const handleConfirm = () => {
     if (!selectedSeat) {
       alert("กรุณาเลือกที่นั่งก่อนค่ะ");
       return;
     }
-    alert(
-      `จองสำเร็จ!\nSeat: ${selectedSeat}\nDate: ${new Date(
-        state.date
-      ).toLocaleDateString()}\nTime: ${state.startTime || "--:--"} - ${
-        state.endTime || "--:--"
-      }`
-    );
-    navigate(-1);
+
+    // ส่งผลกลับไปหน้า Reserve / Planning
+    navigate("/planning", {
+      state: {
+        booking: {
+          date: state.date,
+          startTime: state.startTime,
+          endTime: state.endTime,
+          seatId: selectedSeat,
+        },
+      },
+    });
   };
 
   return (
@@ -110,63 +109,61 @@ export default function SeatMap() {
           <div className="slot-title">Reserve Seat</div>
           <div className="slot-sub">
             {new Date(state.date).toLocaleDateString()} |{" "}
-            {state.startTime || "--:--"} - {state.endTime || "--:--"}
+            {state.startTime} - {state.endTime}
           </div>
         </div>
       </div>
 
       {/* ===== Canvas ===== */}
       <div className="seatmap-canvas">
-        <div className="map-frame">
-          {/* Outer decoration like your figma */}
-          <div className="top-left-bar" />
-          <div className="left-pillars">
-            <div className="pillar" style={{ top: 40 }} />
-            <div className="pillar" style={{ top: 210 }} />
-            <div className="pillar" style={{ top: 390 }} />
-            <div className="pillar" style={{ top: 560 }} />
+        <div className="map-zoom">
+          <div className="map-frame">
+            <div className="top-left-bar" />
+            <div className="left-pillars">
+              <div className="pillar" style={{ top: 40 }} />
+              <div className="pillar" style={{ top: 210 }} />
+              <div className="pillar" style={{ top: 390 }} />
+              <div className="pillar" style={{ top: 560 }} />
+            </div>
           </div>
 
-          {/* Exit label */}
           <div className="map-label exit">ทางหนีไฟ</div>
 
-          {/* Bookshelf center */}
           <div className="bookshelf">
             <span>ชั้นหนังสือ</span>
           </div>
 
-          {/* Computer + A12 */}
-          <div className="computer-zone">
+          <div
+            className="computer-zone"
+            style={{ left: 90, top: 730, gap: 40 }}
+          >
             <div className="seat seat-abs fixed-seat">A12</div>
             <div className="computer-box">Computer</div>
           </div>
 
-          {/* Control room */}
           <div className="control-room">ห้องควบคุมไฟฟ้า</div>
 
-          {/* Seats */}
+          {/* ===== Seats ===== */}
           {SEATS.map((s) => {
-            const seatId = s.id;
-            const showText = s.label ?? s.id;
-            const isTaken = takenSeats.has(seatId);
-            const isSelected = selectedSeat === seatId;
+            const isTaken = takenSeats.has(s.id);
+            const isSelected = selectedSeat === s.id;
 
             return (
               <button
-                key={seatId}
+                key={s.id}
                 className={[
                   "seat",
                   "seat-abs",
+                  /^B([1-9]|1[0-2])$/.test(s.id) ? "seat-b" : "",
                   s.size === "tiny" ? "seat-tiny" : "",
                   isTaken ? "taken" : "",
                   isSelected ? "selected" : "",
                 ].join(" ")}
                 style={{ left: s.pos.left, top: s.pos.top }}
-                onClick={() => handlePick(seatId)}
+                onClick={() => handlePick(s.id)}
                 disabled={isTaken}
-                title={showText}
               >
-                {showText}
+                {s.id}
               </button>
             );
           })}
