@@ -1,0 +1,181 @@
+.weekly-calendar {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  background: #2e7d32;
+  color: #ffffff;
+}
+
+.time-column-header {
+  background: #2e7d32;
+}
+
+.day-header {
+  padding: 10px 5px;
+  text-align: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.day-header.disabled {
+  background: #9ca3af;
+}
+
+.day-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.day-date {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.calendar-body {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  height: 600px;
+  background: #ffffff;
+}
+
+.time-column {
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.time-slot {
+  height: 60px;
+  line-height: 60px;
+  text-align: center;
+  font-size: 13px;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.day-column {
+  position: relative;
+  border-right: 1px solid #e5e7eb;
+}
+
+.day-column.disabled {
+  background: #f3f4f6;
+}
+
+.hour-cell {
+  height: 60px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.hour-cell.clickable:hover {
+  background: #dcfce7;
+  cursor: pointer;
+}
+
+/* ===== Event block ===== */
+.schedule-event {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+
+  background: #ffffff;
+  border: 3px solid;
+  border-radius: 14px;
+
+  padding: 6px 6px;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  cursor: pointer;
+
+  overflow: hidden;
+}
+
+.event-time {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3px;
+}
+
+.event-time-badge {
+  white-space: nowrap;
+  display: inline-block;
+  min-width: max-content;
+
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+
+  border-radius: 10px;
+
+  color: #ffffff;
+  text-align: center;
+}
+
+/* ===== Title base ===== */
+.event-title {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2933;
+  line-height: 1.2;
+
+  /* ellipsis system */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  word-break: break-word;
+}
+
+/* ✅ 1 ชั่วโมง -> 1 บรรทัด + ... */
+.event-title.clamp-1 {
+  -webkit-line-clamp: 1;
+}
+
+/* ✅ 2-3 ชั่วโมง -> 2 บรรทัด + ... */
+.event-title.clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.day-column.disabled .hour-cell {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+/* ===============================
+   Past Event = Gray (ชัด / Professional)
+   =============================== */
+
+.schedule-event.past-event {
+  background: #f3f4f6;        /* เทาอ่อน */
+  border-color: #6b7280;      /* เทาเข้ม */
+  opacity: 1;                /* ไม่จาง */
+  filter: none;              /* ไม่เบลอ */
+  box-shadow: none;
+}
+
+/* เวลา = เทาเข้ม */
+.schedule-event.past-event .event-time-badge {
+  background: #6b7280 !important;
+  color: #ffffff;
+}
+
+/* ตัวหนังสือ = เทาเข้ม */
+.schedule-event.past-event .event-title {
+  color: #374151;
+  font-weight: 600;
+}
+
+/* ไม่เด้งเวลา hover */
+.schedule-event.past-event:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
