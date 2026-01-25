@@ -7,6 +7,10 @@ export default function SeatMap() {
   const navigate = useNavigate();
   const state = location.state;
 
+  // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
+  // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
+  const returnTo = state?.returnTo || "/reserve";
+
   // ===== Seats layout =====
   const SEATS = useMemo(() => {
     const LEFT_COL_X = 100;
@@ -65,7 +69,7 @@ export default function SeatMap() {
       <div className="seatmap-page" style={{ padding: 24 }}>
         <h2>ไม่มีข้อมูลการจอง</h2>
         <p>กรุณากลับไปหน้า Reserve แล้วเลือกเวลาใหม่</p>
-        <button onClick={() => navigate("/planning")}>
+        <button onClick={() => navigate(returnTo, { replace: true })}>
           กลับไปหน้า Reserve
         </button>
       </div>
@@ -77,21 +81,21 @@ export default function SeatMap() {
     setSelectedSeat(seatId);
   };
 
-  // 🔴 จุดสำคัญที่ “แก้จริง”
+  // ✅ คอนเฟิร์มแล้ว “กลับหน้า returnTo” ไม่เด้ง planning
   const handleConfirm = () => {
     if (!selectedSeat) {
       alert("กรุณาเลือกที่นั่งก่อนค่ะ");
       return;
     }
 
-    // ส่งผลกลับไปหน้า Reserve / Planning
-    navigate("/planning", {
+    navigate(returnTo, {
       state: {
         booking: {
           date: state.date,
           startTime: state.startTime,
           endTime: state.endTime,
           seatId: selectedSeat,
+          subject: state.subject, // ✅ ส่งกลับไปด้วย เผื่ออยากโชว์ใน popup
         },
       },
     });
@@ -101,7 +105,8 @@ export default function SeatMap() {
     <div className="seatmap-page">
       {/* ===== Header ===== */}
       <div className="seatmap-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+        {/* ✅ Back กลับหน้า returnTo เลย ไม่ใช้ -1 */}
+        <button className="back-btn" onClick={() => navigate(returnTo)}>
           ← Back
         </button>
 

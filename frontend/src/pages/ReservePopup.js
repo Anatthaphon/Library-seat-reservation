@@ -5,7 +5,7 @@ export default function ReservePopup({ data, onClose, onAccept }) {
   const navigate = useNavigate();
 
   const [duration, setDuration] = useState(
-    data.endTime - data.startTime || 1
+    (data.endTime - data.startTime) || 1
   );
   const [subject, setSubject] = useState(data.subject || "");
 
@@ -14,25 +14,34 @@ export default function ReservePopup({ data, onClose, onAccept }) {
   const handleSelectSeat = () => {
     navigate("/seatmap", {
       state: {
+        // ส่งข้อมูลเดิมไปให้ seatmap
         date: data.date,
         startTime: data.startTime,
         endTime: data.startTime + duration,
         subject,
+
+        // ⭐ สำคัญ: บอก seatmap ว่าหลังเลือกที่นั่งเสร็จให้กลับหน้าไหน
+        // เปลี่ยนให้ตรง route จริงของ "หน้ารีเสิร์ฟ" ของหนู
+        returnTo: "/reservation",
       },
     });
   };
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!hasSeat) {
       alert("กรุณาเลือกที่นั่งก่อน");
       return;
     }
 
-    onAccept({
+    // ให้ onAccept ทำงานก่อน (เผื่อมันยิง API / เซฟ DB)
+    await onAccept({
       ...data,
       subject,
       endTime: data.startTime + duration,
     });
+
+    // ⭐ หลังคอนเฟิร์มเสร็จ ให้ไปหน้า Reservation/Reserve ไม่กลับ Planning
+    navigate("/reservation");
   };
 
   return (
@@ -84,7 +93,10 @@ export default function ReservePopup({ data, onClose, onAccept }) {
           <button style={footerBtn} onClick={onClose}>
             Cancel
           </button>
-          <button style={{ ...footerBtn, fontWeight: 600 }} onClick={handleAccept}>
+          <button
+            style={{ ...footerBtn, fontWeight: 600 }}
+            onClick={handleAccept}
+          >
             Accept
           </button>
         </div>
