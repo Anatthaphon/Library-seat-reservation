@@ -18,6 +18,27 @@ const Planning = () => {
 
   const navigate = useNavigate();
 
+  // ✅ เช็กว่า “แพลนนี้อยู่ในอดีต” หรือยัง (จบเวลาแล้ว)
+  const isPastEvent = (event) => {
+    if (!event) return false;
+
+    const d = new Date(event.date);
+    const endTime = event?.timeSlot?.endTime || '00:00';
+    const [hh, mm] = endTime.split(':').map(Number);
+
+    const eventEnd = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      hh,
+      mm,
+      0,
+      0
+    );
+
+    return eventEnd < new Date();
+  };
+
   // 1) ถ้าผู้ใช้ "เลือก" ช่อง/อีเวนต์ จะใช้ค่านั้น
   const getSelectedSlot = () => {
     if (selectedDateTime) {
@@ -100,10 +121,17 @@ const Planning = () => {
     }
   };
 
+  // ✅ คลิกอีเวนต์: ถ้าเป็นอดีต -> เปิดแบบดูอย่างเดียว (type 2)
   const handleEventClick = (event) => {
     setSelectedEvent(event);
     setSelectedDateTime(null);
-    setPopupType(1);
+
+    if (isPastEvent(event)) {
+      setPopupType(2); // ดูอย่างเดียว (ล็อกแก้/ลบ)
+    } else {
+      setPopupType(1); // แก้ไขได้
+    }
+
     setShowPopup(true);
   };
 
@@ -123,6 +151,12 @@ const Planning = () => {
 
   const handleSaveEvent = async (eventData) => {
     try {
+      // ✅ กันแก้ไขแพลนในอดีต (เผื่อหลุดจาก UI)
+      if (selectedEvent && isPastEvent(selectedEvent)) {
+        alert('ไม่สามารถแก้ไขแพลนในอดีตได้ค่ะ');
+        return;
+      }
+
       const user = { id: '65842827e4b00a1234567890', fullName: 'Mock User' };
 
       const duration = parseInt(eventData.timeSpent) || 1;
@@ -201,6 +235,33 @@ const Planning = () => {
     }
   };
 
+  // ✅ ลบแพลน (เรียกจาก EventPopup)
+  const handleDeleteEvent = async (event) => {
+    try {
+      // ✅ กันลบแพลนในอดีต (เผื่อหลุดจาก UI)
+      if (event && isPastEvent(event)) {
+        alert('ไม่สามารถลบแพลนในอดีตได้ค่ะ');
+        return;
+      }
+
+      const id = event?._id;
+      if (!id) return;
+
+      await scheduleAPI.delete(id);
+
+      setShowPopup(false);
+      setSelectedDateTime(null);
+      setSelectedEvent(null);
+
+      await loadSchedules();
+
+      alert('Deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Error deleting event: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
   const getColorByDay = (dateObj) => {
     const d = dateObj.getDay();
     const dayColors = {
@@ -274,11 +335,11 @@ const Planning = () => {
           setSelectedEvent(null);
         }}
         onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
         eventData={selectedEvent}
         type={popupType}
       />
 
-      {/* ✅ Reserve: กดได้เมื่อมีแพลนอย่างน้อย 1 อัน */}
       <button
         className="reserve-btn"
         onClick={handleReserve}
