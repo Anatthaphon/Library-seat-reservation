@@ -13,10 +13,18 @@ const Planning = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
 
-  // ✅ realtime clock
+  // ✅ realtime clock (แนะนำให้ update ทุก 1 นาทีพอ)
   const [now, setNow] = useState(new Date());
 
   const navigate = useNavigate();
+
+  // ✅ แปลง Date -> "YYYY-MM-DD" แบบ LOCAL (ไม่ใช้ UTC)
+  const formatLocalDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   // ✅ เช็กว่า “แพลนนี้อยู่ในอดีต” หรือยัง (จบเวลาแล้ว)
   const isPastEvent = (event) => {
@@ -83,37 +91,97 @@ const Planning = () => {
     return null;
   };
 
+  const startOfDay = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+
+const isWithinNext2Days = (date) => {
+  const today = startOfDay(new Date());
+  const target = startOfDay(new Date(date));
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= 2; // วันนี้, พรุ่งนี้, มะรืน
+};
+
+const isReservable = (s) => {
+  const d = new Date(s.date);
+  if (d.getDay() === 0) return false;              // ห้ามวันอาทิตย์
+  if (!isWithinNext2Days(s.date)) return false;    // จำกัดวันนี้+2วัน
+
+  const endTime = s?.timeSlot?.endTime || '00:00';
+  const [hh, mm] = endTime.split(':').map(Number);
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm, 0, 0);
+
+  return end > new Date(); // ยังไม่หมดเวลา
+};
+
+
   const handleReserve = () => {
-    const slot = getSlotForReservation();
+  // 1) ถ้าผู้ใช้เลือกช่อง/อีเวนต์ไว้ → จองอันนั้นก่อน
+  const selected = getSelectedSlot();
+  if (selected) {
+    const fake = { date: selected.date, timeSlot: { endTime: selected.endTime || '00:00' } };
 
-    if (!slot) {
-      alert('ยังไม่มีแพลน กรุณาเพิ่มแพลนก่อนจองค่ะ');
+    if (!isReservable(fake)) {
+      alert('จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)');
       return;
     }
 
-    const d = new Date(slot.date);
-    if (d.getDay() === 0) {
-      alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถจองได้ค่ะ');
-      return;
-    }
+    navigate('/seat-map', { state: selected });
+    return;
+  }
 
-    navigate('/seat-map', { state: slot });
+  // 2) ไม่ได้เลือกอะไร → หาแพลนที่จองได้ที่ใกล้ที่สุดในวันนี้+2วัน
+  const reservable = [...schedules]
+    .filter(isReservable)
+    .sort((a, b) => {
+      const ad = new Date(a.date);
+      const bd = new Date(b.date);
+
+      const aStart = parseInt(a?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+      const bStart = parseInt(b?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+
+      ad.setHours(aStart, 0, 0, 0);
+      bd.setHours(bStart, 0, 0, 0);
+
+      return ad - bd;
+    });
+
+  if (reservable.length === 0) {
+    alert('ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วันถัดไป');
+    return;
+  }
+
+  const s = reservable[0];
+  const slot = {
+    date: s.date,
+    startTime: s.timeSlot?.startTime,
+    endTime: s.timeSlot?.endTime,
+    scheduleId: s._id,
+    title: s.title,
   };
+
+  navigate('/seat-map', { state: slot });
+};
 
   useEffect(() => {
     loadSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
-  // ✅ realtime update every 1 second
+  // ✅ realtime update (จากเดิม 1 วินาที -> ปรับเป็น 1 นาที)
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setNow(new Date()), 60 * 1000);
     return () => clearInterval(t);
   }, []);
 
   const loadSchedules = async () => {
     try {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      // ✅ สำคัญ: ใช้ local date ไม่ใช้ toISOString (UTC) เพื่อไม่ให้ week เพี้ยน
+      const dateStr = formatLocalDate(currentDate);
       const response = await scheduleAPI.getByWeek(dateStr);
+
       setSchedules(response.data);
       console.log('Loaded schedules:', response.data);
     } catch (error) {
@@ -191,6 +259,7 @@ const Planning = () => {
         return;
       }
 
+      // ✅ เก็บเป็น ISO แต่ fix เป็นเที่ยง (กัน timezone เลื่อนวันตอนเก็บ)
       const localISOString = new Date(
         eventDate.getFullYear(),
         eventDate.getMonth(),
@@ -343,10 +412,12 @@ const Planning = () => {
       <button
         className="reserve-btn"
         onClick={handleReserve}
-        disabled={schedules.length === 0}
+        disabled={!schedules.some(isReservable)}
+        title={!schedules.some(isReservable) ? 'จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)' : ''}
       >
         Reserve
-      </button>
+    </button>
+
     </div>
   );
 };
