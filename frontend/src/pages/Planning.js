@@ -91,22 +91,79 @@ const Planning = () => {
     return null;
   };
 
+  const startOfDay = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+
+const isWithinNext2Days = (date) => {
+  const today = startOfDay(new Date());
+  const target = startOfDay(new Date(date));
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= 2; // วันนี้, พรุ่งนี้, มะรืน
+};
+
+const isReservable = (s) => {
+  const d = new Date(s.date);
+  if (d.getDay() === 0) return false;              // ห้ามวันอาทิตย์
+  if (!isWithinNext2Days(s.date)) return false;    // จำกัดวันนี้+2วัน
+
+  const endTime = s?.timeSlot?.endTime || '00:00';
+  const [hh, mm] = endTime.split(':').map(Number);
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm, 0, 0);
+
+  return end > new Date(); // ยังไม่หมดเวลา
+};
+
+
   const handleReserve = () => {
-    const slot = getSlotForReservation();
+  // 1) ถ้าผู้ใช้เลือกช่อง/อีเวนต์ไว้ → จองอันนั้นก่อน
+  const selected = getSelectedSlot();
+  if (selected) {
+    const fake = { date: selected.date, timeSlot: { endTime: selected.endTime || '00:00' } };
 
-    if (!slot) {
-      alert('ยังไม่มีแพลน กรุณาเพิ่มแพลนก่อนจองค่ะ');
+    if (!isReservable(fake)) {
+      alert('จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)');
       return;
     }
 
-    const d = new Date(slot.date);
-    if (d.getDay() === 0) {
-      alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถจองได้ค่ะ');
-      return;
-    }
+    navigate('/seat-map', { state: selected });
+    return;
+  }
 
-    navigate('/seat-map', { state: slot });
+  // 2) ไม่ได้เลือกอะไร → หาแพลนที่จองได้ที่ใกล้ที่สุดในวันนี้+2วัน
+  const reservable = [...schedules]
+    .filter(isReservable)
+    .sort((a, b) => {
+      const ad = new Date(a.date);
+      const bd = new Date(b.date);
+
+      const aStart = parseInt(a?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+      const bStart = parseInt(b?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+
+      ad.setHours(aStart, 0, 0, 0);
+      bd.setHours(bStart, 0, 0, 0);
+
+      return ad - bd;
+    });
+
+  if (reservable.length === 0) {
+    alert('ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วันถัดไป');
+    return;
+  }
+
+  const s = reservable[0];
+  const slot = {
+    date: s.date,
+    startTime: s.timeSlot?.startTime,
+    endTime: s.timeSlot?.endTime,
+    scheduleId: s._id,
+    title: s.title,
   };
+
+  navigate('/seat-map', { state: slot });
+};
 
   useEffect(() => {
     loadSchedules();
@@ -355,10 +412,12 @@ const Planning = () => {
       <button
         className="reserve-btn"
         onClick={handleReserve}
-        disabled={schedules.length === 0}
+        disabled={!schedules.some(isReservable)}
+        title={!schedules.some(isReservable) ? 'จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)' : ''}
       >
         Reserve
-      </button>
+    </button>
+
     </div>
   );
 };
