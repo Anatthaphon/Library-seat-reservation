@@ -1,0 +1,152 @@
+.planning-wrapper {
+  background: #f5f6f8;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+/* กล่องหลัก */
+.calendar-box {
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+
+  /* ล็อกขนาด ไม่ให้ดิ้น */
+  height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* แถบเลื่อนสัปดาห์ */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.calendar-nav button {
+  border: none;
+  background: #eee;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* scroll เฉพาะเนื้อใน */
+.calendar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* header + grid ต้องกว้างเท่ากัน */
+.calendar-header,
+.calendar-grid {
+  width: 100%;
+}
+
+/* header + row */
+.calendar-header,
+.hour-row {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+}
+
+/* header */
+.calendar-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+.day-title {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* เวลา */
+.time-col {
+  text-align: right;
+  padding-right: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* แถวเวลา */
+.hour-row {
+  height: 56px;
+}
+
+/* ช่อง */
+.cell {
+  border: 1px solid #eee;
+  background: white;
+  cursor: pointer;
+}
+
+.cell:hover {
+  background: #e8f5e9;
+}
+
+/* ช่องที่ปิด */
+.cell.disabled {
+  background: #e0e0e0;
+  pointer-events: none;
+}
+
+.booking-block {
+  width: 100%;
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 4px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* อนาคต */
+.booking-block.future {
+  background: #81c784;
+  color: #1b5e20;
+}
+
+/* อดีต */
+.booking-block.past {
+  background: #bdbdbd;
+  color: #424242;
+}
+
+.booking-block {
+  position: relative;
+  height: 100%;
+  background: #bdbdbd;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 12px;
+  color: #333;
+}
+
+.booking-block.past {
+  background: #d6d6d6;
+  cursor: pointer;
+}
+
+.delete-btn {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  border: none;
+  background: #ffc107;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  cursor: pointer;
+}
