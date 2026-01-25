@@ -6,16 +6,25 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/planning" className="navbar-logo">
-          Planning System
-        </Link>
+
+        {/* เว้นฝั่งซ้ายไว้โล่ง ๆ */}
+        <div></div>
+
+        {/* เมนูฝั่งขวา (ถ้าอยากให้มี) */}
         <ul className="navbar-menu">
+
+          {/* ถ้ายังไม่อยากให้มีเมนูเลย ลบ <li> ทั้งหมดได้ */}
+          
+          {/* 
           <li className="navbar-item">
-            <Link to="/planning" className="navbar-link">Planning</Link>
+            <Link to="/planning" className="navbar-link">
+              Planning
+            </Link>
           </li>
-          {/* TODO: Add authentication menu items */}
-          {/* TODO: Add seat reservation menu item */}
+          */}
+
         </ul>
+
       </div>
     </nav>
   );
