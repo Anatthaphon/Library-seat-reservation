@@ -5,18 +5,16 @@ const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) =
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const timeSlots = Array.from({ length: 10 }, (_, i) => 9 + i);
 
-  // หาจันทร์ของสัปดาห์ปัจจุบัน
   const getMondayOfWeek = () => {
     const date = new Date(currentDate);
     date.setHours(0, 0, 0, 0);
-    const day = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const diff = day === 0 ? -6 : 1 - day; // ถ้าเป็นอาทิตย์ ให้กลับไป 6 วัน
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
     const monday = new Date(date);
     monday.setDate(date.getDate() + diff);
     return monday;
   };
 
-  // หาวันที่จาก dayIndex (0=Mon, 1=Tue, ..., 6=Sun)
   const getDateForDay = (dayIndex) => {
     const monday = getMondayOfWeek();
     const targetDate = new Date(monday);
@@ -26,42 +24,26 @@ const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) =
   };
 
   const getSchedulesForDay = (dayIndex) => {
-  const targetDate = getDateForDay(dayIndex);
-  const dayName = daysOfWeek[dayIndex];
-  
-  const filtered = schedules.filter(schedule => {
-    const scheduleDate = new Date(schedule.date);
-    
-    // สร้าง date object ที่ local midnight
-    const schedLocal = new Date(
-      scheduleDate.getFullYear(),
-      scheduleDate.getMonth(),
-      scheduleDate.getDate()
-    );
-    
-    const targetLocal = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate()
-    );
-    
-    const isSameDate = schedLocal.getTime() === targetLocal.getTime();
-    
-    // Debug ทุก schedule
-    console.log(`Checking "${schedule.title}":`);
-    console.log(`  Schedule date from DB: ${schedule.date}`);
-    console.log(`  Parsed to: ${scheduleDate.toLocaleString()}`);
-    console.log(`  Schedule local midnight: ${schedLocal.toLocaleString()}`);
-    console.log(`  Target (${dayName}): ${targetLocal.toLocaleString()}`);
-    console.log(`  Match: ${isSameDate}`);
-    console.log('---');
-    
-    return isSameDate;
-  });
-  
-  console.log(`✅ ${dayName} (${targetDate.toLocaleDateString()}): ${filtered.length} events`);
-  return filtered;
-};
+    const targetDate = getDateForDay(dayIndex);
+
+    return schedules.filter(schedule => {
+      const scheduleDate = new Date(schedule.date);
+
+      const schedLocal = new Date(
+        scheduleDate.getFullYear(),
+        scheduleDate.getMonth(),
+        scheduleDate.getDate()
+      );
+
+      const targetLocal = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate()
+      );
+
+      return schedLocal.getTime() === targetLocal.getTime();
+    });
+  };
 
   const getEventPosition = (startTime) => {
     const [hours] = startTime.split(':').map(Number);
@@ -71,34 +53,61 @@ const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) =
   const getEventHeight = (startTime, endTime) => {
     const [startHours, startMinutes] = startTime.split(':').map(Number);
     const [endHours, endMinutes] = endTime.split(':').map(Number);
-    const durationMinutes = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
-    return durationMinutes;
+
+    const durationMinutes =
+      (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+
+    return durationMinutes; // 1 นาที = 1px
   };
 
-  // ✅ จองได้ทุกวัน ยกเว้นวันอาทิตย์
-const isDateBookable = (date) => {
-  const targetDate = new Date(date);
-  targetDate.setHours(0, 0, 0, 0);
+  // ✅ ล็อกวันอาทิตย์ + วันในอดีต (เพิ่มแพลนไม่ได้)
+  const isDateBookable = (date) => {
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
 
-  // ❌ วันอาทิตย์จองไม่ได้
-  if (targetDate.getDay() === 0) {
-    return false;
-  }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  // ✅ วันจันทร์–เสาร์ จองได้
-  return true;
-};
+    if (targetDate.getDay() === 0) return false; // Sunday
+    if (targetDate < today) return false;        // Past
 
+    return true;
+  };
+
+  // ✅ เช็กว่า event “อยู่ในอดีต” ไหม (จบเวลาแล้ว)
+  const isPastSchedule = (schedule) => {
+    const d = new Date(schedule.date);
+
+    const endTime = schedule?.timeSlot?.endTime || '00:00';
+    const [hh, mm] = endTime.split(':').map(Number);
+
+    const eventEnd = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      hh,
+      mm,
+      0,
+      0
+    );
+
+    return eventEnd < new Date();
+  };
 
   const handleCellClick = (dayIndex, hour) => {
     const selectedDate = getDateForDay(dayIndex);
 
-    // ตรวจสอบว่าจองได้หรือไม่
     if (!isDateBookable(selectedDate)) {
-      if (selectedDate.getDay() === 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const d = new Date(selectedDate);
+      d.setHours(0, 0, 0, 0);
+
+      if (d.getDay() === 0) {
         alert('ไม่สามารถจองวันอาทิตย์ได้');
-      } else {
-        alert('คุณสามารถจองได้เฉพาะ 3 วันข้างหน้าเท่านั้น (ไม่นับวันอาทิตย์)');
+      } else if (d < today) {
+        alert('ไม่สามารถเพิ่มแพลนในวันที่ผ่านมาแล้วได้');
       }
       return;
     }
@@ -111,7 +120,6 @@ const isDateBookable = (date) => {
       endTime: `${(hour + 1).toString().padStart(2, '0')}:00`
     };
 
-    console.log('Clicked:', daysOfWeek[dayIndex], selectedDate.toLocaleDateString());
     onCellClick(clickedDateTime);
   };
 
@@ -119,9 +127,11 @@ const isDateBookable = (date) => {
     <div className="weekly-calendar">
       <div className="calendar-header">
         <div className="time-column-header"></div>
+
         {daysOfWeek.map((day, index) => {
           const date = getDateForDay(index);
           const bookable = isDateBookable(date);
+
           return (
             <div key={day} className={`day-header ${!bookable ? 'disabled' : ''}`}>
               <div className="day-name">{day}</div>
@@ -153,24 +163,29 @@ const isDateBookable = (date) => {
                   onClick={() => bookable && handleCellClick(dayIndex, hour)}
                 ></div>
               ))}
-            
+
               {getSchedulesForDay(dayIndex).map(schedule => {
-                const duration = schedule.duration || 1;
-                const startHour = parseInt(schedule.timeSlot.startTime.split(':')[0]);
-                const timeBadges = [];
-                for (let i = 0; i < duration; i++) {
-                  const hour = startHour + i;
-                  timeBadges.push(`${hour.toString().padStart(2, '0')}:00`);
-                }
+                const start = schedule.timeSlot?.startTime || '09:00';
+                const end = schedule.timeSlot?.endTime || '10:00';
+                const timeRange = `${start} - ${end}`;
+
+                const titleText = schedule.notes?.trim() || schedule.title?.trim() || 'Event';
+
+                const heightPx = getEventHeight(start, end);
+                const isOneHour = heightPx <= 60;
+                const titleClampClass = isOneHour ? 'clamp-1' : 'clamp-2';
+
+                const past = isPastSchedule(schedule);
 
                 return (
                   <div
                     key={schedule._id}
-                    className="schedule-event"
+                    className={`schedule-event ${past ? 'past-event' : ''}`}
                     style={{
-                      borderColor: schedule.color,
-                      top: `${getEventPosition(schedule.timeSlot.startTime)}px`,
-                      height: `${getEventHeight(schedule.timeSlot.startTime, schedule.timeSlot.endTime)}px`
+                      // ถ้าเป็นอดีต ให้ border เป็นเทาไปเลย (เพื่อให้ดู disabled)
+                      borderColor: past ? '#9ca3af' : schedule.color,
+                      top: `${getEventPosition(start)}px`,
+                      height: `${heightPx}px`
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -178,20 +193,19 @@ const isDateBookable = (date) => {
                     }}
                   >
                     <div className="event-time">
-                      {timeBadges.map((time, idx) => (
-                        <span
-                          key={idx}
-                          className="event-time-badge"
-                          style={{ backgroundColor: schedule.color }}
-                        >
-                          {time}
-                        </span>
-                      ))}
+                      <span
+                        className={`event-time-badge ${past ? 'past-badge' : ''}`}
+                        style={{
+                          backgroundColor: past ? '#9ca3af' : schedule.color
+                        }}
+                      >
+                        {timeRange}
+                      </span>
                     </div>
-                    <div className="event-title">{schedule.notes}</div>
-                    {/* {schedule.room && (
-                      <div className="event-room">{schedule.room}</div>
-                    )} */}
+
+                    <div className={`event-title ${titleClampClass}`} title={titleText}>
+                      {titleText}
+                    </div>
                   </div>
                 );
               })}
