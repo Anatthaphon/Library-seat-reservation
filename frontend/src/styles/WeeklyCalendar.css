@@ -1,61 +1,71 @@
 .weekly-calendar {
-  background: white;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
   border-radius: 8px;
-  padding: 20px;
-  margin: 20px 0;
-  overflow-x: auto;
+  overflow: hidden;
+  font-family: sans-serif;
 }
 
 .calendar-header {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  gap: 1px;
-  background-color: #e5e7eb;
-  margin-bottom: 1px;
+  background: #2e7d32;
+  color: #ffffff;
 }
 
 .time-column-header {
-  background-color: white;
+  background: #2e7d32;
 }
 
 .day-header {
-  background-color: #2e7d32;
-  color: white;
-  padding: 12px;
+  padding: 10px 5px;
   text-align: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.day-header.disabled {
+  background: #9ca3af;
 }
 
 .day-name {
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .day-date {
-  font-size: 14px;
+  font-size: 12px;
+  opacity: 0.9;
 }
 
 .calendar-body {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  gap: 1px;
-  background-color: #e5e7eb;
+  height: 600px;
+  background: #ffffff;
 }
 
 .time-column {
-  background-color: white;
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
 }
 
 .time-slot {
   height: 60px;
-  padding: 8px;
-  font-size: 12px;
-  color: #666;
+  line-height: 60px;
+  text-align: center;
+  font-size: 13px;
+  color: #374151;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .day-column {
   position: relative;
-  background-color: white;
+  border-right: 1px solid #e5e7eb;
+}
+
+.day-column.disabled {
+  background: #f3f4f6;
 }
 
 .hour-cell {
@@ -63,79 +73,109 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.hour-cell.clickable {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
 .hour-cell.clickable:hover {
-  background-color: #f0fdf4;
+  background: #dcfce7;
+  cursor: pointer;
 }
 
-.hour-cell.disabled {
-  cursor: not-allowed;
-  background-color: #f3f4f6;
-  opacity: 0.6;
-}
-
-.day-column.disabled {
-  opacity: 0.5;
-  background-color: #f9fafb;
-}
-
-.day-header.disabled {
-  background-color: #9ca3af;
-  opacity: 0.7;
-}
-
-/* Event Card */
+/* ===== Event block ===== */
 .schedule-event {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  padding: 16px;
-  border-radius: 16px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  left: 6px;
+  right: 6px;
+
+  background: #ffffff;
   border: 3px solid;
-  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+
+  padding: 6px 6px;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  cursor: pointer;
+
+  overflow: hidden;
 }
 
-.schedule-event:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-/* Time badges - Grid 2 columns */
 .event-time {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3px;
 }
 
 .event-time-badge {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  color: white;
+  white-space: nowrap;
+  display: inline-block;
+  min-width: max-content;
+
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+
+  border-radius: 10px;
+
+  color: #ffffff;
   text-align: center;
 }
 
-/* Title */
+/* ===== Title base ===== */
 .event-title {
+  text-align: center;
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 16px;
-  color: #1e293b;
-  line-height: 1.3;
+  color: #1f2933;
+  line-height: 1.2;
+
+  /* ellipsis system */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  word-break: break-word;
 }
 
-/* Room */
-.event-room {
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
+/* ✅ 1 ชั่วโมง -> 1 บรรทัด + ... */
+.event-title.clamp-1 {
+  -webkit-line-clamp: 1;
+}
+
+/* ✅ 2-3 ชั่วโมง -> 2 บรรทัด + ... */
+.event-title.clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.day-column.disabled .hour-cell {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+/* ===============================
+   Past Event = Gray (ชัด / Professional)
+   =============================== */
+
+.schedule-event.past-event {
+  background: #f3f4f6;        /* เทาอ่อน */
+  border-color: #6b7280;      /* เทาเข้ม */
+  opacity: 1;                /* ไม่จาง */
+  filter: none;              /* ไม่เบลอ */
+  box-shadow: none;
+}
+
+/* เวลา = เทาเข้ม */
+.schedule-event.past-event .event-time-badge {
+  background: #6b7280 !important;
+  color: #ffffff;
+}
+
+/* ตัวหนังสือ = เทาเข้ม */
+.schedule-event.past-event .event-title {
+  color: #374151;
+  font-weight: 600;
+}
+
+/* ไม่เด้งเวลา hover */
+.schedule-event.past-event:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
 }
