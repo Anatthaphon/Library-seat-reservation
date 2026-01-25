@@ -1,0 +1,64 @@
+.booking-block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 2px;
+
+  background: #ffd54f; /* เหลืองแบบใน mock */
+  border-radius: 10px;
+  padding: 6px 8px;
+
+  font-size: 12px;
+  font-weight: 600;
+  color: #5d4037;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+  transition: all 0.2s ease;
+}
+
+/* hover */
+.booking-block:hover {
+  transform: scale(1.02);
+}
+
+/* ถังขยะ */
+.booking-block .delete-btn {
+  opacity: 0;
+  background: #ffca28;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: opacity 0.2s ease;
+}
+
+/* hover แล้วค่อยโชว์ */
+.booking-block:hover .delete-btn {
+  opacity: 1;
+}
+
+/* ===== past booking ===== */
+.booking-block.past {
+  background: #e0e0e0;
+  color: #757575;
+  cursor: default;
+  box-shadow: none;
+}
+
+.booking-block.past:hover {
+  transform: none;
+}
+
+.booking-block.past .delete-btn {
+  display: none;
+}
