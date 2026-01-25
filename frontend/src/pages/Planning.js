@@ -13,10 +13,18 @@ const Planning = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDateTime, setSelectedDateTime] = useState(null);
 
-  // ✅ realtime clock
+  // ✅ realtime clock (แนะนำให้ update ทุก 1 นาทีพอ)
   const [now, setNow] = useState(new Date());
 
   const navigate = useNavigate();
+
+  // ✅ แปลง Date -> "YYYY-MM-DD" แบบ LOCAL (ไม่ใช้ UTC)
+  const formatLocalDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   // ✅ เช็กว่า “แพลนนี้อยู่ในอดีต” หรือยัง (จบเวลาแล้ว)
   const isPastEvent = (event) => {
@@ -102,18 +110,21 @@ const Planning = () => {
 
   useEffect(() => {
     loadSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
-  // ✅ realtime update every 1 second
+  // ✅ realtime update (จากเดิม 1 วินาที -> ปรับเป็น 1 นาที)
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setNow(new Date()), 60 * 1000);
     return () => clearInterval(t);
   }, []);
 
   const loadSchedules = async () => {
     try {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      // ✅ สำคัญ: ใช้ local date ไม่ใช้ toISOString (UTC) เพื่อไม่ให้ week เพี้ยน
+      const dateStr = formatLocalDate(currentDate);
       const response = await scheduleAPI.getByWeek(dateStr);
+
       setSchedules(response.data);
       console.log('Loaded schedules:', response.data);
     } catch (error) {
@@ -191,6 +202,7 @@ const Planning = () => {
         return;
       }
 
+      // ✅ เก็บเป็น ISO แต่ fix เป็นเที่ยง (กัน timezone เลื่อนวันตอนเก็บ)
       const localISOString = new Date(
         eventDate.getFullYear(),
         eventDate.getMonth(),
