@@ -7,8 +7,7 @@ export default function SeatMap() {
   const navigate = useNavigate();
   const state = location.state;
 
-  // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
-  // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
+  // ✅ กลับหน้าเดิมหลังเลือกที่นั่ง
   const returnTo = state?.returnTo || "/reserve";
 
   // ===== Seats layout =====
@@ -63,7 +62,7 @@ export default function SeatMap() {
   const takenSeats = useMemo(() => new Set(), []);
   const [selectedSeat, setSelectedSeat] = useState(null);
 
-  // ===== กันกรณีเข้าหน้านี้แบบไม่ผ่าน popup =====
+  // ===== กันเข้าหน้านี้แบบไม่มี state =====
   if (!state) {
     return (
       <div className="seatmap-page" style={{ padding: 24 }}>
@@ -81,7 +80,6 @@ export default function SeatMap() {
     setSelectedSeat(seatId);
   };
 
-  // ✅ คอนเฟิร์มแล้ว “กลับหน้า returnTo” ไม่เด้ง planning
   const handleConfirm = () => {
     if (!selectedSeat) {
       alert("กรุณาเลือกที่นั่งก่อนค่ะ");
@@ -89,13 +87,14 @@ export default function SeatMap() {
     }
 
     navigate(returnTo, {
+      replace: true,
       state: {
         booking: {
           date: state.date,
           startTime: state.startTime,
           endTime: state.endTime,
           seatId: selectedSeat,
-          subject: state.subject, // ✅ ส่งกลับไปด้วย เผื่ออยากโชว์ใน popup
+          subject: state.subject || "",
         },
       },
     });
@@ -103,23 +102,19 @@ export default function SeatMap() {
 
   return (
     <div className="seatmap-page">
-      {/* ===== Header ===== */}
       <div className="seatmap-header">
-        {/* ✅ Back กลับหน้า returnTo เลย ไม่ใช้ -1 */}
-        <button className="back-btn" onClick={() => navigate(returnTo)}>
+        <button className="back-btn" onClick={() => navigate(returnTo, { replace: true })}>
           ← Back
         </button>
 
         <div className="slot-info">
           <div className="slot-title">Reserve Seat</div>
           <div className="slot-sub">
-            {new Date(state.date).toLocaleDateString()} |{" "}
-            {state.startTime} - {state.endTime}
+            {new Date(state.date).toLocaleDateString()} | {state.startTime} - {state.endTime}
           </div>
         </div>
       </div>
 
-      {/* ===== Canvas ===== */}
       <div className="seatmap-canvas">
         <div className="map-zoom">
           <div className="map-frame">
@@ -138,17 +133,13 @@ export default function SeatMap() {
             <span>ชั้นหนังสือ</span>
           </div>
 
-          <div
-            className="computer-zone"
-            style={{ left: 90, top: 730, gap: 40 }}
-          >
+          <div className="computer-zone" style={{ left: 90, top: 730, gap: 40 }}>
             <div className="seat seat-abs fixed-seat">A12</div>
             <div className="computer-box">Computer</div>
           </div>
 
           <div className="control-room">ห้องควบคุมไฟฟ้า</div>
 
-          {/* ===== Seats ===== */}
           {SEATS.map((s) => {
             const isTaken = takenSeats.has(s.id);
             const isSelected = selectedSeat === s.id;
@@ -175,7 +166,6 @@ export default function SeatMap() {
         </div>
       </div>
 
-      {/* ===== Footer ===== */}
       <div className="seatmap-footer">
         <div className="selected-info">
           Selected: <b>{selectedSeat || "-"}</b>

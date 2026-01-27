@@ -1,28 +1,36 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function ReservePopup({ data, onClose, onAccept }) {
   const navigate = useNavigate();
 
-  const [duration, setDuration] = useState(
-    (data.endTime - data.startTime) || 1
-  );
-  const [subject, setSubject] = useState(data.subject || "");
+  const SEATMAP_ROUTE = "/seat-map";
+  const RETURN_TO = "/reserve"; 
+  const initialDuration = useMemo(() => {
+    const dur = Number(data?.endTime) - Number(data?.startTime);
+    if (Number.isFinite(dur) && dur >= 1) return dur;
+    return 1;
+  }, [data?.startTime, data?.endTime]);
 
-  const hasSeat = Boolean(data.seatId);
+  const [duration, setDuration] = useState(initialDuration);
+  const [subject, setSubject] = useState(data?.subject || "");
+
+  const hasSeat = Boolean(data?.seatId);
+
+  const computedEndTime = useMemo(() => {
+    return Number(data?.startTime) + Number(duration || 1);
+  }, [data?.startTime, duration]);
 
   const handleSelectSeat = () => {
-    navigate("/seatmap", {
+    
+    navigate(SEATMAP_ROUTE, {
       state: {
-        // ส่งข้อมูลเดิมไปให้ seatmap
-        date: data.date,
-        startTime: data.startTime,
-        endTime: data.startTime + duration,
+        date: data?.date,
+        startTime: data?.startTime,
+        endTime: computedEndTime,
         subject,
-
-        // ⭐ สำคัญ: บอก seatmap ว่าหลังเลือกที่นั่งเสร็จให้กลับหน้าไหน
-        // เปลี่ยนให้ตรง route จริงของ "หน้ารีเสิร์ฟ" ของหนู
-        returnTo: "/reservation",
+        seatId: data?.seatId || null,
+        returnTo: RETURN_TO,
       },
     });
   };
@@ -33,15 +41,13 @@ export default function ReservePopup({ data, onClose, onAccept }) {
       return;
     }
 
-    // ให้ onAccept ทำงานก่อน (เผื่อมันยิง API / เซฟ DB)
-    await onAccept({
+    await onAccept?.({
       ...data,
       subject,
-      endTime: data.startTime + duration,
+      endTime: computedEndTime,
     });
 
-    // ⭐ หลังคอนเฟิร์มเสร็จ ให้ไปหน้า Reservation/Reserve ไม่กลับ Planning
-    navigate("/reservation");
+    onClose?.();
   };
 
   return (
@@ -93,10 +99,7 @@ export default function ReservePopup({ data, onClose, onAccept }) {
           <button style={footerBtn} onClick={onClose}>
             Cancel
           </button>
-          <button
-            style={{ ...footerBtn, fontWeight: 600 }}
-            onClick={handleAccept}
-          >
+          <button style={{ ...footerBtn, fontWeight: 600 }} onClick={handleAccept}>
             Accept
           </button>
         </div>

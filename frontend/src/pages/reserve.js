@@ -35,7 +35,7 @@ export default function Reserve() {
     return d;
   }, []);
 
-  // ===== จองได้แค่ 3 วัน =====
+  // ===== จองได้แค่ 3 วัน (วันนี้ + 2 วัน) =====
   const maxDate = useMemo(() => {
     const d = new Date(today);
     d.setDate(today.getDate() + 2);
@@ -57,8 +57,8 @@ export default function Reserve() {
   // ===== disable logic =====
   const isDisabled = (day) => {
     if (day < today) return true;
-    if (day.getDay() === 0) return true;
-    if (day > maxDate) return true;
+    if (day.getDay() === 0) return true;  // Sunday
+    if (day > maxDate) return true;       // เกิน 2 วัน
     return false;
   };
 
@@ -78,15 +78,9 @@ export default function Reserve() {
         <div className="calendar-nav">
           <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
           <span>
-            {days[0].toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-            })}
+            {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
             {" – "}
-            {days[6].toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-            })}
+            {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
           </span>
           <button onClick={() => setWeekOffset((w) => w + 1)}>›</button>
         </div>
@@ -97,10 +91,7 @@ export default function Reserve() {
             <div className="time-col" />
             {days.map((d) => (
               <div key={d.toDateString()} className="day-title">
-                {d.toLocaleDateString("en-GB", {
-                  weekday: "short",
-                  day: "numeric",
-                })}
+                {d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}
               </div>
             ))}
           </div>
@@ -115,8 +106,7 @@ export default function Reserve() {
 
                   const bookingHere = bookings.find(
                     (b) =>
-                      new Date(b.date).toDateString() ===
-                        day.toDateString() &&
+                      new Date(b.date).toDateString() === day.toDateString() &&
                       hour >= b.startTime &&
                       hour < b.endTime
                   );
@@ -133,6 +123,7 @@ export default function Reserve() {
                           startTime: hour,
                           endTime: hour + 1,
                           seatId: null,
+                          subject: "",
                         });
                       }}
                     >
@@ -160,8 +151,9 @@ export default function Reserve() {
         <ReservePopup
           data={draft}
           onClose={() => setDraft(null)}
-          onAccept={(finalBooking) => {
+          onAccept={async (finalBooking) => {
             setBookings((prev) => [...prev, finalBooking]);
+            // ✅ ไม่ต้อง navigate ไปไหน อยู่หน้าเดิม
             setDraft(null);
           }}
         />
@@ -175,9 +167,7 @@ export default function Reserve() {
             setSelectedBooking(null);
           }}
           onConfirm={() => {
-            setBookings((prev) =>
-              prev.filter((b) => b !== selectedBooking)
-            );
+            setBookings((prev) => prev.filter((b) => b !== selectedBooking));
             setShowCancelPopup(false);
             setSelectedBooking(null);
           }}
