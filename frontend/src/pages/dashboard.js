@@ -1,7 +1,11 @@
 import React from "react";
 import "../styles/dashboard.css";
+import { useNavigate } from "react-router-dom";
+
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   return (
     <div className="dashboard-page">
       <header className="topbar">
@@ -29,7 +33,11 @@ function Dashboard() {
         </div>
       </section>
 
-      <div className="reservation-preview">
+      <div 
+        className="reservation-preview"
+        onClick={() => navigate("/reserve")}
+        role="button"
+      >
         <span>
           reservation
           <br />
