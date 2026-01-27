@@ -6,6 +6,8 @@ import './styles/App.css';
 import Planning from './pages/Planning';
 import SeatMap from './pages/SeatMap';
 import Reserve from './pages/reserve';
+import Dashboard from './pages/dashboard';
+
 
 // Components
 import Navbar from './components/Navbar';
@@ -25,7 +27,8 @@ function App() {
 
         <div className="main-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/planning" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/planning" element={<Planning />} />
 
             {/* Seat map */}
