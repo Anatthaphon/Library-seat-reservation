@@ -22,7 +22,8 @@ export default function ReservePopup({ data, onClose, onAccept }) {
 
         // ⭐ สำคัญ: บอก seatmap ว่าหลังเลือกที่นั่งเสร็จให้กลับหน้าไหน
         // เปลี่ยนให้ตรง route จริงของ "หน้ารีเสิร์ฟ" ของหนู
-        returnTo: "/reservation",
+        returnTo: "/reserve"
+
       },
     });
   };
@@ -35,13 +36,14 @@ export default function ReservePopup({ data, onClose, onAccept }) {
 
     // ให้ onAccept ทำงานก่อน (เผื่อมันยิง API / เซฟ DB)
     await onAccept({
-      ...data,
-      subject,
-      endTime: data.startTime + duration,
+  ...data,
+  subject,
+  endTime: data.startTime + duration,
     });
 
     // ⭐ หลังคอนเฟิร์มเสร็จ ให้ไปหน้า Reservation/Reserve ไม่กลับ Planning
-    navigate("/reservation");
+    navigate("/reserve");
+
   };
 
   return (

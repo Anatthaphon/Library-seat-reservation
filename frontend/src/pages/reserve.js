@@ -8,23 +8,22 @@ import "../styles/Reserve.css";
 export default function Reserve() {
   const location = useLocation();
 
-  // booking ที่ยืนยันแล้ว
+  // ===== state =====
   const [bookings, setBookings] = useState([]);
-
-  // booking ที่กำลังเลือก (popup จอง)
   const [draft, setDraft] = useState(null);
 
-  // booking ที่จะลบ
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
 
-  // คุมสัปดาห์
   const [weekOffset, setWeekOffset] = useState(0);
 
   // ===== รับค่ากลับจาก SeatMap =====
   useEffect(() => {
     if (location.state?.booking) {
-      setDraft(location.state.booking);
+      setDraft((prev) => ({
+        ...prev,
+        ...location.state.booking,
+      }));
     }
   }, [location.state]);
 
@@ -51,7 +50,7 @@ export default function Reserve() {
     });
   }, [today, weekOffset]);
 
-  // ชั่วโมง 09:00 - 18:00
+  // ===== ชั่วโมง =====
   const hours = Array.from({ length: 10 }, (_, i) => 9 + i);
 
   // ===== disable logic =====
@@ -62,7 +61,7 @@ export default function Reserve() {
     return false;
   };
 
-  // ===== เช็ค booking ผ่านเวลาแล้วไหม =====
+  // ===== booking ผ่านเวลาแล้วไหม =====
   const isPastBooking = (booking) => {
     const now = new Date();
     const bookingEnd = new Date(booking.date);
@@ -73,21 +72,26 @@ export default function Reserve() {
   return (
     <div className="planning-wrapper">
       <div className="calendar-box">
-
         {/* ===== Navigation ===== */}
         <div className="calendar-nav">
           <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
+
           <span>
-            {days[0].toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-            })}
-            {" – "}
-            {days[6].toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-            })}
+            {days.length === 7 && (
+              <>
+                {days[0].toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                })}
+                {" – "}
+                {days[6].toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                })}
+              </>
+            )}
           </span>
+
           <button onClick={() => setWeekOffset((w) => w + 1)}>›</button>
         </div>
 
