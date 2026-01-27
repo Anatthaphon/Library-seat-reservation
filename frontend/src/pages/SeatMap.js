@@ -7,14 +7,10 @@ export default function SeatMap() {
   const navigate = useNavigate();
   const state = location.state;
 
-<<<<<<< HEAD
   // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
   // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
   const returnTo = state?.returnTo || "/planning";
-=======
-  // ✅ กลับหน้าเดิมหลังเลือกที่นั่ง
-  const returnTo = state?.returnTo || "/reserve";
->>>>>>> 77c05b7ff701f562706845b64a5475f546524814
+
 
   // ===== Seats layout =====
   const SEATS = useMemo(() => {
@@ -106,7 +102,6 @@ export default function SeatMap() {
     });
   };
 
-<<<<<<< HEAD
   const getColorByDay = (dateObj) => {
   const d = dateObj.getDay();
   const dayColors = {
@@ -159,20 +154,6 @@ export default function SeatMap() {
 
         <div className="booking-title">
           {state.title || "Event"}
-=======
-  return (
-    <div className="seatmap-page">
-      <div className="seatmap-header">
-        <button className="back-btn" onClick={() => navigate(returnTo, { replace: true })}>
-          ← Back
-        </button>
-
-        <div className="slot-info">
-          <div className="slot-title">Reserve Seat</div>
-          <div className="slot-sub">
-            {new Date(state.date).toLocaleDateString()} | {state.startTime} - {state.endTime}
-          </div>
->>>>>>> 77c05b7ff701f562706845b64a5475f546524814
         </div>
       </div>
     </aside>
