@@ -47,6 +47,25 @@ const Planning = () => {
     return eventEnd < new Date();
   };
 
+  // ✅ NEW: เช็กว่า “slot เริ่มต้น” ผ่านไปแล้วไหม (ชั่วโมงผ่านไปแล้ว = ห้ามแพลน)
+  const isPastSlotStart = (date, startTime) => {
+    const now = new Date();
+    const d = new Date(date);
+    const [hh, mm] = String(startTime).split(':').map(Number);
+
+    const slotStart = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+      hh || 0,
+      mm || 0,
+      0,
+      0
+    );
+
+    return slotStart < now;
+  };
+
   // 1) ถ้าผู้ใช้ "เลือก" ช่อง/อีเวนต์ จะใช้ค่านั้น
   const getSelectedSlot = () => {
     if (selectedDateTime) {
@@ -92,78 +111,77 @@ const Planning = () => {
   };
 
   const startOfDay = (d) => {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-};
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
 
-const isWithinNext2Days = (date) => {
-  const today = startOfDay(new Date());
-  const target = startOfDay(new Date(date));
-  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= 2; // วันนี้, พรุ่งนี้, มะรืน
-};
+  const isWithinNext2Days = (date) => {
+    const today = startOfDay(new Date());
+    const target = startOfDay(new Date(date));
+    const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 2; // วันนี้, พรุ่งนี้, มะรืน
+  };
 
-const isReservable = (s) => {
-  const d = new Date(s.date);
-  if (d.getDay() === 0) return false;              // ห้ามวันอาทิตย์
-  if (!isWithinNext2Days(s.date)) return false;    // จำกัดวันนี้+2วัน
+  const isReservable = (s) => {
+    const d = new Date(s.date);
+    if (d.getDay() === 0) return false;              // ห้ามวันอาทิตย์
+    if (!isWithinNext2Days(s.date)) return false;    // จำกัดวันนี้+2วัน
 
-  const endTime = s?.timeSlot?.endTime || '00:00';
-  const [hh, mm] = endTime.split(':').map(Number);
-  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm, 0, 0);
+    const endTime = s?.timeSlot?.endTime || '00:00';
+    const [hh, mm] = endTime.split(':').map(Number);
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm, 0, 0);
 
-  return end > new Date(); // ยังไม่หมดเวลา
-};
-
+    return end > new Date(); // ยังไม่หมดเวลา
+  };
 
   const handleReserve = () => {
-  // 1) ถ้าผู้ใช้เลือกช่อง/อีเวนต์ไว้ → จองอันนั้นก่อน
-  const selected = getSelectedSlot();
-  if (selected) {
-    const fake = { date: selected.date, timeSlot: { endTime: selected.endTime || '00:00' } };
+    // 1) ถ้าผู้ใช้เลือกช่อง/อีเวนต์ไว้ → จองอันนั้นก่อน
+    const selected = getSelectedSlot();
+    if (selected) {
+      const fake = { date: selected.date, timeSlot: { endTime: selected.endTime || '00:00' } };
 
-    if (!isReservable(fake)) {
-      alert('จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)');
+      if (!isReservable(fake)) {
+        alert('จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)');
+        return;
+      }
+
+      navigate('/seat-map', { state: selected });
       return;
     }
 
-    navigate('/seat-map', { state: selected });
-    return;
-  }
+    // 2) ไม่ได้เลือกอะไร → หาแพลนที่จองได้ที่ใกล้ที่สุดในวันนี้+2วัน
+    const reservable = [...schedules]
+      .filter(isReservable)
+      .sort((a, b) => {
+        const ad = new Date(a.date);
+        const bd = new Date(b.date);
 
-  // 2) ไม่ได้เลือกอะไร → หาแพลนที่จองได้ที่ใกล้ที่สุดในวันนี้+2วัน
-  const reservable = [...schedules]
-    .filter(isReservable)
-    .sort((a, b) => {
-      const ad = new Date(a.date);
-      const bd = new Date(b.date);
+        const aStart = parseInt(a?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+        const bStart = parseInt(b?.timeSlot?.startTime?.split(':')[0] || '0', 10);
 
-      const aStart = parseInt(a?.timeSlot?.startTime?.split(':')[0] || '0', 10);
-      const bStart = parseInt(b?.timeSlot?.startTime?.split(':')[0] || '0', 10);
+        ad.setHours(aStart, 0, 0, 0);
+        bd.setHours(bStart, 0, 0, 0);
 
-      ad.setHours(aStart, 0, 0, 0);
-      bd.setHours(bStart, 0, 0, 0);
+        return ad - bd;
+      });
 
-      return ad - bd;
-    });
+    if (reservable.length === 0) {
+      alert('ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วันถัดไป');
+      return;
+    }
 
-  if (reservable.length === 0) {
-    alert('ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วันถัดไป');
-    return;
-  }
+    const s = reservable[0];
+    const slot = {
+      date: s.date,
+      startTime: s.timeSlot?.startTime,
+      endTime: s.timeSlot?.endTime,
+      scheduleId: s._id,
+      title: s.title,
+    };
 
-  const s = reservable[0];
-  const slot = {
-    date: s.date,
-    startTime: s.timeSlot?.startTime,
-    endTime: s.timeSlot?.endTime,
-    scheduleId: s._id,
-    title: s.title,
+    navigate('/seat-map', { state: slot });
   };
-
-  navigate('/seat-map', { state: slot });
-};
 
   useEffect(() => {
     loadSchedules();
@@ -203,11 +221,19 @@ const isReservable = (s) => {
     setShowPopup(true);
   };
 
+  // ✅ NEW: คลิกช่องเวลา -> ถ้าชั่วโมงผ่านไปแล้ว ห้ามแพลนทันที
   const handleCellClick = (dateTime) => {
     const clickedDate = new Date(dateTime.date);
 
     if (clickedDate.getDay() === 0) {
       alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถแพลนได้ค่ะ');
+      return;
+    }
+
+    // ✅ ห้ามแพลนในชั่วโมงที่ผ่านไปแล้ว (รวมทั้งชั่วโมงปัจจุบันที่เริ่มไปแล้ว)
+    // เช่น ตอนนี้ 16:30 กดช่อง 16:00 => ห้าม
+    if (isPastSlotStart(dateTime.date, dateTime.startTime)) {
+      alert('ไม่สามารถสร้างแพลนในเวลาที่ผ่านไปแล้วได้');
       return;
     }
 
@@ -256,6 +282,14 @@ const isReservable = (s) => {
 
       if (eventDate.getDay() === 0) {
         alert('วันอาทิตย์ห้องสมุดปิด ไม่สามารถแพลนได้ค่ะ');
+        return;
+      }
+
+      // ✅ NEW: กันหลุดอีกชั้นตอนกด Save (ห้ามเซฟถ้า slot start ผ่านไปแล้ว)
+      // (กรณีเปิด popup ค้างไว้แล้วเวลาล่วง/หรือหลุดจากเงื่อนไขอื่น)
+      const slotStartTime = `${String(startHour).padStart(2, '0')}:00`;
+      if (isPastSlotStart(eventDate, slotStartTime)) {
+        alert('ไม่สามารถสร้างแพลนในเวลาที่ผ่านไปแล้วได้');
         return;
       }
 
@@ -416,7 +450,7 @@ const isReservable = (s) => {
         title={!schedules.some(isReservable) ? 'จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)' : ''}
       >
         Reserve
-    </button>
+      </button>
 
     </div>
   );
