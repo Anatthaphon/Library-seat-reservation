@@ -7,9 +7,14 @@ export default function SeatMap() {
   const navigate = useNavigate();
   const state = location.state;
 
+<<<<<<< HEAD
   // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
   // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
   const returnTo = state?.returnTo || "/planning";
+=======
+  // ✅ กลับหน้าเดิมหลังเลือกที่นั่ง
+  const returnTo = state?.returnTo || "/reserve";
+>>>>>>> 77c05b7ff701f562706845b64a5475f546524814
 
   // ===== Seats layout =====
   const SEATS = useMemo(() => {
@@ -63,7 +68,7 @@ export default function SeatMap() {
   const takenSeats = useMemo(() => new Set(), []);
   const [selectedSeat, setSelectedSeat] = useState(null);
 
-  // ===== กันกรณีเข้าหน้านี้แบบไม่ผ่าน popup =====
+  // ===== กันเข้าหน้านี้แบบไม่มี state =====
   if (!state) {
     return (
       <div className="seatmap-page" style={{ padding: 24 }}>
@@ -81,7 +86,6 @@ export default function SeatMap() {
     setSelectedSeat(seatId);
   };
 
-  // ✅ คอนเฟิร์มแล้ว “กลับหน้า returnTo” ไม่เด้ง planning
   const handleConfirm = () => {
     if (!selectedSeat) {
       alert("กรุณาเลือกที่นั่งก่อนค่ะ");
@@ -89,18 +93,20 @@ export default function SeatMap() {
     }
 
     navigate(returnTo, {
+      replace: true,
       state: {
         booking: {
           date: state.date,
           startTime: state.startTime,
           endTime: state.endTime,
           seatId: selectedSeat,
-          subject: state.subject, // ✅ ส่งกลับไปด้วย เผื่ออยากโชว์ใน popup
+          subject: state.subject || "",
         },
       },
     });
   };
 
+<<<<<<< HEAD
   const getColorByDay = (dateObj) => {
   const d = dateObj.getDay();
   const dayColors = {
@@ -153,6 +159,20 @@ export default function SeatMap() {
 
         <div className="booking-title">
           {state.title || "Event"}
+=======
+  return (
+    <div className="seatmap-page">
+      <div className="seatmap-header">
+        <button className="back-btn" onClick={() => navigate(returnTo, { replace: true })}>
+          ← Back
+        </button>
+
+        <div className="slot-info">
+          <div className="slot-title">Reserve Seat</div>
+          <div className="slot-sub">
+            {new Date(state.date).toLocaleDateString()} | {state.startTime} - {state.endTime}
+          </div>
+>>>>>>> 77c05b7ff701f562706845b64a5475f546524814
         </div>
       </div>
     </aside>
@@ -165,7 +185,6 @@ export default function SeatMap() {
       
 
 
-      {/* ===== Canvas ===== */}
       <div className="seatmap-canvas">
         <div className="map-zoom">
           <div className="map-frame">
@@ -191,7 +210,6 @@ export default function SeatMap() {
 
           <div className="control-room">ห้องควบคุมไฟฟ้า</div>
 
-          {/* ===== Seats ===== */}
           {SEATS.map((s) => {
             const isTaken = takenSeats.has(s.id);
             const isSelected = selectedSeat === s.id;
@@ -218,7 +236,6 @@ export default function SeatMap() {
         </div>
       </div>
 
-      {/* ===== Footer ===== */}
       <div className="seatmap-footer">
         <div className="selected-info">
           Selected: <b>{selectedSeat || "-"}</b>

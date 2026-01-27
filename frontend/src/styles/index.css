@@ -5,9 +5,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Kanit', sans-serif;
+  font-weight: 300; /* ⭐ ตรงกับ Light ใน Figma */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f5f5f5;
@@ -23,4 +22,8 @@ code {
   padding: 20px;
 }
 
-
+.reservation-note {
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.6;
+}
