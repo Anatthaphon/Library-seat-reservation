@@ -9,7 +9,7 @@ export default function SeatMap() {
 
   // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
   // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
-  const returnTo = state?.returnTo || "/reserve";
+  const returnTo = state?.returnTo || "/planning";
 
   // ===== Seats layout =====
   const SEATS = useMemo(() => {
@@ -101,23 +101,69 @@ export default function SeatMap() {
     });
   };
 
-  return (
-    <div className="seatmap-page">
-      {/* ===== Header ===== */}
-      <div className="seatmap-header">
-        {/* ✅ Back กลับหน้า returnTo เลย ไม่ใช้ -1 */}
-        <button className="back-btn" onClick={() => navigate(returnTo)}>
-          ← Back
-        </button>
+  const getColorByDay = (dateObj) => {
+  const d = dateObj.getDay();
+  const dayColors = {
+    1: '#facc15',
+    2: '#ec4899',
+    3: '#22c55e',
+    4: '#f97316',
+    5: '#06b6d4',
+    6: '#8b5cf6',
+    0: '#9ca3af',
+  };
+  return dayColors[d] || '#3b82f6';
+};
 
-        <div className="slot-info">
-          <div className="slot-title">Reserve Seat</div>
-          <div className="slot-sub">
-            {new Date(state.date).toLocaleDateString()} |{" "}
-            {state.startTime} - {state.endTime}
-          </div>
+
+  return (
+  <div className="seatmap-shell">
+    {/* LEFT: STATUS */}
+    <aside className="side-panel left">
+      <h3 className="side-title">STATUS</h3>
+
+      <div className="status-item">
+        <span className="dot available" />
+        <span>Available</span>
+      </div>
+      <div className="status-item">
+        <span className="dot booked" />
+        <span>Booked</span>
+      </div>
+      <div className="status-item">
+        <span className="dot checkedin" />
+        <span>Checked-in</span>
+      </div>
+      <div className="status-item">
+        <span className="dot disabled" />
+        <span>Disabled</span>
+      </div>
+
+      {/* ✅ Booking card ใต้ STATUS */}
+      <div
+        className="booking-card"
+        style={{ borderColor: state?.color || getColorByDay(new Date(state.date)) }}
+      >
+        <div
+          className="booking-time"
+          style={{ background: state?.color || getColorByDay(new Date(state.date)) }}
+        >
+          {state.startTime} - {state.endTime}
+        </div>
+
+        <div className="booking-title">
+          {state.title || "Event"}
         </div>
       </div>
+    </aside>
+
+
+    {/* CENTER: MAP */}
+    <div className="seatmap-page">
+      {/* ===== Header ===== */}
+      {/* การ์ดข้อมูลการจอง (สีตามวัน) */}
+      
+
 
       {/* ===== Canvas ===== */}
       <div className="seatmap-canvas">
@@ -138,10 +184,7 @@ export default function SeatMap() {
             <span>ชั้นหนังสือ</span>
           </div>
 
-          <div
-            className="computer-zone"
-            style={{ left: 90, top: 730, gap: 40 }}
-          >
+          <div className="computer-zone" style={{ left: 90, top: 730, gap: 40 }}>
             <div className="seat seat-abs fixed-seat">A12</div>
             <div className="computer-box">Computer</div>
           </div>
@@ -186,5 +229,30 @@ export default function SeatMap() {
         </button>
       </div>
     </div>
-  );
-}
+
+    {/* RIGHT: TABLE */}
+    <aside className="side-panel right">
+      <h3 className="side-title">TABLE</h3>
+
+      <div className="table-item">
+        <span className="label a">A</span>
+        <span>Tables for groups of 2–4 people.</span>
+      </div>
+
+      <div className="table-item">
+        <span className="label b">B</span>
+        <span>Tables for groups of 1 people.</span>
+      </div>
+
+      <div className="table-item">
+        <span className="label c">C</span>
+        <span>Tables for groups of 4–6 people.</span>
+      </div>
+
+      <div className="table-item">
+        <span className="label computer">Computer</span>
+        <span>Search for information on the internet</span>
+      </div>
+    </aside>
+  </div>
+);}

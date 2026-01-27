@@ -1,40 +1,12 @@
-/* ===== Page scaffold (keep simple) ===== */
-.seatmap-page{
-  padding: 16px;
-  font-family: system-ui, -apple-system, "Noto Sans Thai", sans-serif;
-}
-
-.seatmap-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.back-btn{
-  border: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #f0f0f0;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.slot-info .slot-title{
-  font-weight: 900;
-  font-size: 18px;
-}
-.slot-info .slot-sub{
-  opacity: .7;
-  font-weight: 700;
-  margin-top: 2px;
-}
-
-/* ===== Canvas ===== */
+/* ===== Canvas / Seats ===== */
 .seatmap-canvas{
   display:flex;
   justify-content:center;
+}
+
+.map-zoom{
+  transform: scale(1.0);
+  transform-origin: top center;
 }
 
 .map-frame{
@@ -43,12 +15,12 @@
   height: 900px;
   background: #fff;
   border-radius: 18px;
-  border: 14px solid #e6e6e6;  /* grey outer like figma */
+  border: 14px solid #e6e6e6;
   box-shadow: 0 12px 35px rgba(0,0,0,.10);
   overflow: hidden;
 }
 
-/* top-left small grey bar like figma */
+/* top-left small grey bar */
 .top-left-bar{
   position:absolute;
   left: 40px;
@@ -127,7 +99,6 @@
   font-weight: 900;
 }
 
-
 /* computer + A12 */
 .computer-zone{
   position:absolute;
@@ -137,7 +108,6 @@
   align-items:center;
   gap: 12px;
 }
-
 .computer-box{
   background: #d9d9d9;
   border-radius: 8px;
@@ -168,7 +138,7 @@
   width: 24px;
   height: 37px;
   font-size: 12px;
-  border-radius: 999px; /* ให้ B13-B15 ดูโค้ง ๆ */
+  border-radius: 999px;
 }
 
 .fixed-seat{
@@ -177,7 +147,6 @@
   height: 42px !important;
 }
 
-/* states */
 .seat:hover{ transform: translateY(-1px); }
 .seat.taken{
   opacity: .45;
@@ -187,7 +156,109 @@
   outline: 3px solid #111;
 }
 
-/* footer */
+/* B1–B12 */
+.seat-b{
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 14px;
+}
+
+/* ===== Layout 3 Columns ===== */
+.seatmap-shell{
+  align-items: start;
+  display: grid;
+  grid-template-columns: 320px 1fr 320px; /* ✅ STATUS/TABLE ใหญ่ขึ้น */
+  gap: 24px;
+  padding: 24px;
+  min-height: 100vh;
+  background: #f5f6f8;
+  box-sizing: border-box;
+
+  padding-top: 10px; /* เผื่อ navbar */
+}
+
+/* ===== Side Panel ===== */
+.side-panel{
+  background: #ffffff;
+  border-radius: 14px;            /* ✅ ขอบการ์ดเล็กลง */
+  padding: 28px 26px;             /* ✅ ใหญ่ขึ้น */
+  box-shadow: 0 6px 15px rgba(0,0,0,.12);
+  height: fit-content;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.side-title{
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;                /* ✅ ตัวใหญ่ขึ้น */
+  margin-bottom: 18px;
+  letter-spacing: 0.6px;
+}
+
+/* STATUS items */
+.status-item{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f7f7f7;
+  border-radius: 10px;            /* ✅ ขอบ item เล็กลง */
+  padding: 14px 16px;             /* ✅ ใหญ่ขึ้น */
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dot{
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+.dot.available { background: #2ecc71; }
+.dot.booked    { background: #f1c40f; }
+.dot.checkedin { background: #e74c3c; }
+.dot.disabled  { background: #9e9e9e; }
+
+/* TABLE items */
+.table-item{
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 14px;                /* ✅ ใหญ่ขึ้น */
+  line-height: 1.45;
+}
+
+.label{
+  min-width: 30px;
+  height: 24px;
+  border-radius: 5px;             /* ✅ ขอบ label เล็กลง */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.label.a{ background: #d5f5e3; }
+.label.b{ background: #d6eaf8; }
+.label.c{ background: #fdebd0; }
+.label.computer{
+  background: #d5f5e3;
+  padding: 0 8px;
+  min-width: auto;
+}
+
+/* ===== Center Map ===== */
+.seatmap-page{
+  position: relative;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.15);
+}
+
+/* Footer */
 .seatmap-footer{
   display:flex;
   align-items:center;
@@ -208,14 +279,48 @@
 .selected-info{
   font-weight: 800;
 }
-/* ===== Zoom whole seat map ===== */
-.map-zoom{
-  transform: scale(1.0);          /* ปรับเลขนี้: 0.8 เล็กลง / 1.1 ใหญ่ขึ้น */
-  transform-origin: top center;   /* ยึดด้านบนตรงกลาง */
+
+/* ===== Booking Card (ใต้ STATUS) ===== */
+.booking-card{
+  position: static;
+  width: 100%;
+  margin-top: 18px;
+  box-sizing: border-box;
+
+  border: 2px solid #ff6a00;
+  border-radius: 14px;            /* ✅ ขอบเล็กลง */
+  padding: 14px 14px;
+  background: #fff;
+  text-align: center;
 }
-/* ===== B1–B12 only ===== */
-.seat-b{
-  width: 30px !important;   /* ปรับได้ */
-  height: 30px !important;
+
+.booking-time{
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.booking-title{
   font-size: 14px;
+  font-weight: 800;
+  color: #111;
+}
+
+/* ให้ panel ซ้าย/ขวาชิดด้านบน */
+.seatmap-shell > .side-panel,
+.seatmap-page{
+  align-self: start;
+}
+
+.side-panel.right{
+  margin-top: 0 !important;
+}
+
+/* ไม่ให้ STATUS ดันลง */
+.side-panel.left{
+  margin-top: 0 !important;
 }
