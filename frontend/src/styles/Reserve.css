@@ -1,152 +1,170 @@
-.planning-wrapper {
-  background: #f5f6f8;
+/* --- โครงสร้างหน้าเว็บ --- */
+.reserve-page {
+  background: #f1f3f5;
   min-height: 100vh;
-  padding: 24px;
-}
-
-/* กล่องหลัก */
-.calendar-box {
-  background: white;
-  border-radius: 20px;
-  padding: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-
-  /* ล็อกขนาด ไม่ให้ดิ้น */
-  height: calc(100vh - 160px);
+  padding: 40px 0;
+  font-family: 'Inter', sans-serif;
   display: flex;
   flex-direction: column;
+  align-items: center;
+}
+
+/* --- ส่วนหัว Reserve สีเขียว --- */
+.reserve-header {
+  background: #2e7d32;
+  color: white;
+  width: 95%; 
+  max-width: 1600px; /* ✅ ขยายตารางให้ยาวออกด้านข้าง */
+  height: 80px;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px 12px 0 0;
+  box-sizing: border-box;
+}
+
+.reserve-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* --- อัปเดตส่วน .header-info ใน Reserve.css --- */
+.header-info {
+  display: flex;
+  gap: 30px; /* เพิ่มระยะห่างระหว่างกลุ่มคำ */
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff; /* สีขาวชัดเจน */
+}
+
+/* เน้นตัวหนาเฉพาะคำสำคัญถ้าต้องการ */
+.header-info span {
+  letter-spacing: 0.5px;
+}
+
+/* --- กล่องขาวบรรจุตารางและปุ่มนำทาง --- */
+.calendar-scroll {
+  background: white;
+  width: 95%; 
+  max-width: 1600px; /* ✅ ล็อคขนาดให้เท่ากับส่วนหัวด้านบน */
+  padding: 25px 40px; 
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  box-sizing: border-box;
+}
+
+/* --- แถบปุ่มนำทาง (Previous / Next) --- */
+.week-nav {
+  display: flex;
+  justify-content: space-between; /* ✅ ปุ่มอยู่ซ้าย-ขวา ภายในขอบตาราง */
+  align-items: center;
+  margin-bottom: 25px;
+  width: 100%;
+}
+
+.week-nav button {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer; /* ✅ ปุ่มกดปกติเป็นรูปมือ */
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.week-nav button:hover {
+  background-color: #1b5e20;
+  transform: translateY(-1px);
+}
+
+/* ใส่ข้อความในปุ่ม */
+.week-nav button:first-of-type::before { content: "← Previous Week"; }
+.week-nav button:last-of-type::after { content: "Next Week →"; }
+
+.week-nav span {
+  font-weight: 700;
+  color: #333;
+  font-size: 18px;
+}
+
+/* --- หัวตารางแสดงวัน (Mon-Sun) --- */
+.calendar-header {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr); /* ✅ แบ่ง 7 วันเท่าๆ กัน */
+  background-color: #2e7d32;
+  border-radius: 8px 8px 0 0;
   overflow: hidden;
 }
 
-/* แถบเลื่อนสัปดาห์ */
-.calendar-nav {
+.day-title {
+  color: white;
+  padding: 15px 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- แถวเวลาและช่องตาราง --- */
+.hour-row {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  height: 75px; /* ✅ เพิ่มความสูงให้ใช้งานง่ายขึ้น */
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.time-col {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-}
-
-.calendar-nav button {
-  border: none;
-  background: #eee;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-/* scroll เฉพาะเนื้อใน */
-.calendar-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* header + grid ต้องกว้างเท่ากัน */
-.calendar-header,
-.calendar-grid {
-  width: 100%;
-}
-
-/* header + row */
-.calendar-header,
-.hour-row {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-}
-
-/* header */
-.calendar-header {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 2;
-}
-
-.day-title {
-  text-align: center;
+  background: #f9f9f9;
+  color: #777;
+  font-size: 14px;
   font-weight: 600;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
 }
 
-/* เวลา */
-.time-col {
-  text-align: right;
-  padding-right: 8px;
-  font-size: 12px;
-  color: #666;
-}
-
-/* แถวเวลา */
-.hour-row {
-  height: 56px;
-}
-
-/* ช่อง */
+/* ✅ ช่องสีขาว: รูปมือ (Pointer) */
 .cell {
-  border: 1px solid #eee;
   background: white;
-  cursor: pointer;
+  border-right: 1px solid #f1f1f1;
+  cursor: pointer; 
+  transition: background 0.2s;
+  position: relative;
 }
 
 .cell:hover {
-  background: #e8f5e9;
+  background: #f0fdf4;
 }
 
-/* ช่องที่ปิด */
+/* ✅ ช่องสีเทา: รูปเครื่องหมายห้าม (Not-allowed) */
 .cell.disabled {
-  background: #e0e0e0;
-  pointer-events: none;
+  background: #f3f4f6; /* สีเทาตามรูป */
+  cursor: not-allowed; /* ✅ สัญลักษณ์วงกลมขีดฆ่าสีแดง */
+  pointer-events: all; /* เพื่อให้ cursor แสดงผลเมื่อเลื่อนผ่าน */
 }
 
+.cell.disabled:hover {
+  background: #f3f4f6; /* ไม่ต้องเปลี่ยนสี */
+}
+
+/* --- ก้อนการจอง (Booking Block) --- */
 .booking-block {
-  width: 100%;
-  border-radius: 6px;
-  font-size: 12px;
-  padding: 4px;
-  box-sizing: border-box;
-  pointer-events: none;
-}
-
-/* อนาคต */
-.booking-block.future {
-  background: #81c784;
+  width: 92%;
+  height: 85%;
+  margin: auto;
+  background: #81c784; /* ✅ สีเขียวอ่อนตามต้นแบบ */
   color: #1b5e20;
-}
-
-/* อดีต */
-.booking-block.past {
-  background: #bdbdbd;
-  color: #424242;
-}
-
-.booking-block {
-  position: relative;
-  height: 100%;
-  background: #bdbdbd;
   border-radius: 6px;
-  padding: 6px;
-  font-size: 12px;
-  color: #333;
-}
-
-.booking-block.past {
-  background: #d6d6d6;
-  cursor: pointer;
-}
-
-.delete-btn {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  border: none;
-  background: #ffc107;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   cursor: pointer;
 }

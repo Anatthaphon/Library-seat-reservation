@@ -1,90 +1,67 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 
-export default function ReservePopup({ data, onClose, onAccept }) {
-  const navigate = useNavigate();
+function formatDate(date) {
+  if (!date) return "";
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
-  const SEATMAP_ROUTE = "/seat-map";
-  const RETURN_TO = "/reserve"; 
-  const initialDuration = useMemo(() => {
-    const dur = Number(data?.endTime) - Number(data?.startTime);
-    if (Number.isFinite(dur) && dur >= 1) return dur;
-    return 1;
-  }, [data?.startTime, data?.endTime]);
+export default function ReservePopup({ data, onClose, onAccept, onSelectSeat }) {
+  const [duration, setDuration] = useState(1);
 
-  const [duration, setDuration] = useState(initialDuration);
-  const [subject, setSubject] = useState(data?.subject || "");
+  // ซิงค์ Duration เริ่มต้นจากข้อมูลที่ส่งมา (เช่น กรณีเราแก้เวลาใน Popup แล้วไปเลือกที่นั่ง)
+  useEffect(() => {
+    if (data.endTime && data.startTime) {
+      setDuration(data.endTime - data.startTime);
+    }
+  }, [data.startTime, data.endTime]);
 
-  const hasSeat = Boolean(data?.seatId);
+  if (!data || typeof data.startTime !== "number") return null;
 
-  const computedEndTime = useMemo(() => {
-    return Number(data?.startTime) + Number(duration || 1);
-  }, [data?.startTime, duration]);
-
-  const handleSelectSeat = () => {
-    
-    navigate(SEATMAP_ROUTE, {
-      state: {
-        date: data?.date,
-        startTime: data?.startTime,
-        endTime: computedEndTime,
-        subject,
-        seatId: data?.seatId || null,
-        returnTo: RETURN_TO,
-      },
-    });
-  };
-
-  const handleAccept = async () => {
-    if (!hasSeat) {
-      alert("กรุณาเลือกที่นั่งก่อน");
+  const handleConfirm = () => {
+    // ตรวจสอบว่ามี seatId ใน data หรือยัง
+    if (!data.seatId) {
+      alert("กรุณาเลือกที่นั่งให้เรียบร้อย");
       return;
     }
 
-    await onAccept?.({
-      ...data,
-      subject,
-      endTime: computedEndTime,
-    });
+    const dateObj = data.date instanceof Date ? data.date : new Date(data.date);
+    if (isNaN(dateObj)) {
+      alert("วันที่ไม่ถูกต้อง");
+      return;
+    }
 
-    onClose?.();
+    onAccept({
+      ...data,
+      startTime: data.startTime,
+      endTime: data.startTime + duration,
+      date: dateObj,
+    });
+  };
+
+  const handleGoToSeatMap = () => {
+    // ต้องอัปเดต endTime ตามที่เลือกใน Popup ก่อนส่งไปหน้า SeatMap
+    onSelectSeat({
+      ...data,
+      endTime: data.startTime + duration
+    });
   };
 
   return (
-    <div style={overlay}>
-      <div style={popup}>
-        <h3 style={title}>Reservation Details</h3>
-
-        {/* Subject */}
-        <div style={row}>
-          <div style={label}>
-            ✏️ <span>Subject</span>
-          </div>
-          <input
-            style={input}
-            placeholder="Enter subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-        </div>
-
-        {/* Seat */}
-        <div style={row}>
-          <div style={label}>
-            🪑 <span>Seat</span>
-          </div>
-          <button style={linkBtn} onClick={handleSelectSeat}>
-            {hasSeat ? data.seatId : "Select Seat"}
-          </button>
-        </div>
-
-        {/* Time */}
-        <div style={row}>
-          <div style={label}>
-            ⏱ <span>Time Spent</span>
-          </div>
+    <div className="event-popup-overlay">
+      <div className="event-header-label">Reservation Details</div>
+      <div className="event-popup">
+        
+        {/* เลือกเวลา */}
+        <div className="form-row space-between">
+          <span>Duration</span>
           <select
-            style={select}
+            className="input-field"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
           >
@@ -94,92 +71,52 @@ export default function ReservePopup({ data, onClose, onAccept }) {
           </select>
         </div>
 
-        {/* Footer */}
-        <div style={footer}>
-          <button style={footerBtn} onClick={onClose}>
+        {/* ที่นั่ง */}
+        <div className="form-row space-between">
+          <span>Seat</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {data.seatId ? (
+              <>
+                <strong style={{ color: '#2ecc71', fontSize: '18px' }}>{data.seatId}</strong>
+                <button 
+                  className="btn-action" 
+                  style={{ fontSize: '12px', padding: '4px 8px' }} 
+                  onClick={handleGoToSeatMap}
+                >
+                  Change
+                </button>
+              </>
+            ) : (
+              <button className="btn-action" onClick={handleGoToSeatMap}>
+                Select seat
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* วันที่ */}
+        <div className="form-row space-between">
+          <span>Date</span>
+          <span>{formatDate(data.date)}</span>
+        </div>
+
+        {/* เวลาช่วงที่จอง */}
+        <div className="form-row space-between">
+          <span>Time</span>
+          <span>
+            {data.startTime}:00 – {data.startTime + duration}:00
+          </span>
+        </div>
+
+        <div className="form-actions-container">
+          <button className="btn-action cancel" onClick={onClose}>
             Cancel
           </button>
-          <button style={{ ...footerBtn, fontWeight: 600 }} onClick={handleAccept}>
-            Accept
+          <button className="btn-action confirm" onClick={handleConfirm}>
+            Confirm
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-/* ===== styles ===== */
-
-const overlay = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.45)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 1000,
-};
-
-const popup = {
-  width: 380,
-  background: "#fff",
-  borderRadius: 20,
-  padding: 20,
-};
-
-const title = {
-  marginBottom: 16,
-  color: "#7b8dbd",
-};
-
-const row = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "14px 0",
-  borderBottom: "1px solid #eee",
-};
-
-const label = {
-  display: "flex",
-  gap: 8,
-  alignItems: "center",
-  color: "#7b8dbd",
-  fontWeight: 500,
-};
-
-const input = {
-  border: "none",
-  outline: "none",
-  fontSize: 14,
-  textAlign: "right",
-  width: 150,
-};
-
-const select = {
-  borderRadius: 8,
-  padding: "4px 8px",
-};
-
-const linkBtn = {
-  background: "none",
-  border: "none",
-  color: "#4a6cf7",
-  cursor: "pointer",
-  fontSize: 14,
-};
-
-const footer = {
-  display: "flex",
-  marginTop: 12,
-  borderTop: "1px solid #eee",
-};
-
-const footerBtn = {
-  flex: 1,
-  padding: 12,
-  border: "none",
-  background: "none",
-  cursor: "pointer",
-  fontSize: 15,
-};

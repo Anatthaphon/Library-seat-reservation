@@ -10,7 +10,7 @@ export default function BookingBlock({ booking, onRequestDelete }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div>{booking.seatId}</div>
+      {booking.seatId}
 
       {hover && (
         <button
