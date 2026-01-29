@@ -1,28 +1,65 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import "../styles/BookingBlock.css";
 
-export default function BookingBlock({ booking, onRequestDelete }) {
+export default function BookingBlock({ booking, onRequestDelete, past }) {
   const [hover, setHover] = useState(false);
+
+  const getColorByDay = (dateStr) => {
+    const d = new Date(dateStr).getDay();
+    const dayColors = {
+      1: "#facc15", // Mon
+      2: "#ec4899", // Tue
+      3: "#22c55e", // Wed
+      4: "#f97316", // Thu
+      5: "#06b6d4", // Fri
+      6: "#8b5cf6", // Sat
+      0: "#9ca3af", // Sun
+    };
+    return dayColors[d] || "#3b82f6";
+  };
+
+  const themeColor = getColorByDay(booking.date);
+  // คำนวณจำนวนชั่วโมง
+  const duration = booking.endTime - booking.startTime;
 
   return (
     <div
-      className="booking-block"
+      className={`new-booking-card ${past ? "is-past" : ""}`}
+      style={{ 
+        borderColor: themeColor,
+        // คำนวณความสูง: จำนวนชั่วโมง * 100% แล้วลบระยะห่างนิดหน่อย
+        height: `calc(${duration} * 100% - 12px)`, 
+        zIndex: 50 
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      {booking.seatId}
+      <div
+        className="card-header-bar"
+        style={{ backgroundColor: themeColor }}
+      >
+        <span className="time-text-label">
+          {booking.startTime}:00 – {booking.endTime}:00
+        </span>
+      </div>
 
-      {hover && (
-        <button
-          className="delete-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestDelete(booking);
-          }}
-        >
-          🗑
-        </button>
-      )}
+      <div className="card-body-content">
+        <span className="seat-number-text">
+          Seat {booking.seatId}
+        </span>
+
+        {hover && !past && (
+          <button
+            className="delete-icon-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestDelete(booking);
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
     </div>
   );
 }

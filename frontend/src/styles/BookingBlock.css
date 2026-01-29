@@ -1,64 +1,98 @@
-.booking-block {
+.new-booking-card {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 2px;
 
-  background: #ffd54f; /* เหลืองแบบใน mock */
-  border-radius: 10px;
-  padding: 6px 8px;
+  /* ❗ สำคัญ: อย่าใช้ inset */
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
 
-  font-size: 12px;
-  font-weight: 600;
-  color: #5d4037;
+  background: #ffffff;
+  border: 2px solid;
+  border-radius: 14px;
 
   display: flex;
+  flex-direction: column;
+
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+
+  z-index: 10;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.new-booking-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.16);
+}
+
+/* ===== Header time badge ===== */
+.card-header-bar {
+  margin: 6px auto 0;
+  padding: 2px 10px;
+
+  border-radius: 999px;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-
-  transition: all 0.2s ease;
+  justify-content: center;
 }
 
-/* hover */
-.booking-block:hover {
-  transform: scale(1.02);
+.time-text-label {
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-/* ถังขยะ */
-.booking-block .delete-btn {
-  opacity: 0;
-  background: #ffca28;
+/* ===== Body ===== */
+.card-body-content {
+  flex: 1;
+  padding: 6px 8px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+
+  position: relative;
+}
+
+.seat-number-text {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+/* ===== Delete button ===== */
+.delete-icon-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+
+  width: 18px;
+  height: 18px;
+
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+
+  font-size: 10px;
+  cursor: pointer;
 
   display: flex;
   align-items: center;
   justify-content: center;
-
-  transition: opacity 0.2s ease;
 }
 
-/* hover แล้วค่อยโชว์ */
-.booking-block:hover .delete-btn {
-  opacity: 1;
-}
-
-/* ===== past booking ===== */
-.booking-block.past {
-  background: #e0e0e0;
-  color: #757575;
-  cursor: default;
+/* ===== Past booking ===== */
+.new-booking-card.is-past {
+  opacity: 0.55;
+  background: #f8fafc;
+  border-color: #cbd5e1 !important;
   box-shadow: none;
 }
 
-.booking-block.past:hover {
-  transform: none;
-}
-
-.booking-block.past .delete-btn {
-  display: none;
+.new-booking-card.is-past .card-header-bar {
+  background-color: #94a3b8 !important;
 }
