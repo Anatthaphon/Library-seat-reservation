@@ -94,7 +94,7 @@
 /* --- หัวตารางแสดงวัน (Mon-Sun) --- */
 .calendar-header {
   display: grid;
-  grid-template-columns: 100px repeat(7, 1fr); /* ✅ แบ่ง 7 วันเท่าๆ กัน */
+  grid-template-columns: 100px repeat(7, 1fr);
   background-color: #2e7d32;
   border-radius: 8px 8px 0 0;
   overflow: hidden;
@@ -102,11 +102,26 @@
 
 .day-title {
   color: white;
-  padding: 15px 0;
+  padding: 10px 0; /* ปรับ Padding ให้สมดุล */
   text-align: center;
-  font-weight: 700;
-  font-size: 15px;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column; /* ✅ ทำให้ชื่อวันกับวันที่เรียงบรรทัดกัน */
+  justify-content: center;
+  gap: 4px; /* ระยะห่างระหว่างชื่อวันกับวันที่ */
+}
+
+.day-name {
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: capitalize;
+}
+
+/* สไตล์ตัวเลขวันที่ (26, 27...) */
+.day-number {
+  font-weight: 500;
+  font-size: 14px;
+  opacity: 0.9; /* ให้จางลงนิดหนึ่งตามแบบรูป 2 */
 }
 
 /* --- แถวเวลาและช่องตาราง --- */

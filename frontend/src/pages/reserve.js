@@ -131,7 +131,13 @@ export default function Reserve() {
           <div className="time-col" />
           {days.map((d) => (
             <div key={d.toDateString()} className="day-title">
-              {d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}
+              {/* ✅ ปรับให้แสดงชื่อวันบน และวันที่ล่าง (ต้องใช้คู่กับ CSS ที่ให้ไปก่อนหน้า) */}
+              <div className="day-name">
+                {d.toLocaleDateString("en-GB", { weekday: "long" })}
+              </div>
+              <div className="day-number">
+                {d.getDate()}
+              </div>
             </div>
           ))}
         </div>
@@ -143,27 +149,33 @@ export default function Reserve() {
               {days.map((day) => {
                 const disabled = isDisabled(day);
                 
+                // ค้นหาการจองที่ "เริ่มต้น" ในชั่วโมงนี้
                 const startingBookings = bookings.filter(
                   (b) =>
                     new Date(b.date).toDateString() === day.toDateString() &&
                     b.startTime === hour
                 );
 
+                // ✅ เช็กว่าชั่วโมงนี้มีคนจองไปแล้วหรือยัง (กันคลิกสร้าง Draft ซ้ำในเวลาเดิม)
+                const isAlreadyBooked = bookings.some(b => 
+                  new Date(b.date).toDateString() === day.toDateString() &&
+                  hour >= b.startTime && hour < b.endTime
+                );
+
                 return (
                   <div
                     key={day.toDateString() + hour}
-                    className={`cell ${disabled ? "disabled" : ""}`}
+                    className={`cell ${disabled ? "disabled" : ""} ${isAlreadyBooked ? "booked" : ""}`}
                     style={{ position: "relative" }} 
                     onClick={() => {
-                      if (disabled) return;
-                      const newDraft = {
+                      if (disabled || isAlreadyBooked) return; 
+                      setDraft({
                         date: day,
                         startTime: hour,
                         endTime: hour + 1,
                         seatId: null,
                         subject: "",
-                      };
-                      setDraft(newDraft);
+                      });
                     }}
                   >
                     {startingBookings.map((b) => (
@@ -185,11 +197,11 @@ export default function Reserve() {
         </div>
       </div>
 
-      {/* --- POPUPS RENDERED AT THE END --- */}
       {draft && (
         <ReservePopup
           key={draft.seatId ? `seat-${draft.seatId}` : "no-seat"}
           data={draft}
+          allBookings={bookings}
           onClose={() => {
             localStorage.removeItem("draftBooking");
             setDraft(null);
