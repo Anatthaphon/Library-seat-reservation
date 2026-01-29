@@ -19,11 +19,18 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
   };
 
   const themeColor = getColorByDay(booking.date);
+  // คำนวณจำนวนชั่วโมง
+  const duration = booking.endTime - booking.startTime;
 
   return (
     <div
       className={`new-booking-card ${past ? "is-past" : ""}`}
-      style={{ borderColor: themeColor }}
+      style={{ 
+        borderColor: themeColor,
+        // คำนวณความสูง: จำนวนชั่วโมง * 100% แล้วลบระยะห่างนิดหน่อย
+        height: `calc(${duration} * 100% - 12px)`, 
+        zIndex: 50 
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
