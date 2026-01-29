@@ -38,11 +38,10 @@ function Dashboard() {
         onClick={() => navigate("/reserve")}
         role="button"
       >
-        <span>
-          reservation
-          <br />
-          จองที่นั่ง
-        </span>
+        <div className="reservation-text">
+          <div className="reservation-en">reservation</div>
+          <div className="reservation-th">จองที่นั่ง</div>
+        </div>
       </div>
 
       <p className="reservation-note">
@@ -50,7 +49,7 @@ function Dashboard() {
         <br />
         หากต้องการยกเลิกในวันที่ท่านใช้งาน
         <br />
-        กรุณาติดต่อเจ้าหน้าที่ 08x-xxxxxxx ในเวลา 08:30 - 16:30 น.
+        กรุณาติดต่อเจ้าหน้าที่ 065 716 2632 ในเวลา 08:30 - 16:30 น.
       </p>
 
       <section className="section agreement">
@@ -68,7 +67,7 @@ function Dashboard() {
           <div>
             <h4>Contact Us</h4>
             <p>งานทรัพยากรการเรียนรู้ (ห้องสมุดวิทยาศาสตร์)</p>
-            <p>มหาวิทยาลัยนเรศวร วิทยาเขตศรีราชา</p>
+            <p>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
             <p>เลขที่ 199 หมู่ 6 ต.ทุ่งสุขลา อ.ศรีราชา จ.ชลบุรี 20230</p>
             <p>โทรศัพท์: 065 716 2632</p>
           </div>
@@ -76,7 +75,7 @@ function Dashboard() {
           <div>
             <h4>เวลาทำการช่วงเปิดภาคเรียน</h4>
             <p>เปิดให้บริการ</p>
-            <p>วันจันทร์ - วันเสาร์ เวลา 9.00 - 18.00</p>
+            <p>วันจันทร์ - วันเสาร์ เวลา 9.00 - 18.00 น.</p>
             <br />
             <p>ปิดให้บริการ</p>
             <p>วันอาทิตย์ และ วันหยุดนักขัตฤกษ์</p>
