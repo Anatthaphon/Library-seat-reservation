@@ -167,14 +167,14 @@
 .seatmap-shell{
   align-items: start;
   display: grid;
-  grid-template-columns: 320px 1fr 320px; /* ✅ STATUS/TABLE ใหญ่ขึ้น */
+  grid-template-columns: 320px 1fr 320px;
   gap: 24px;
-  padding: 24px;
-  min-height: 100vh;
+
+  padding: 0 24px 24px;   /* ✅ ตัด padding-top ออก */
+  margin-top: 0;          /* ✅ กันโดน margin แปลกๆ */
+  min-height: calc(100vh - 55px); /* ✅ เพราะ navbar สูง 55px */
   background: #f5f6f8;
   box-sizing: border-box;
-
-  padding-top: 10px; /* เผื่อ navbar */
 }
 
 /* ===== Side Panel ===== */
@@ -323,4 +323,124 @@
 /* ไม่ให้ STATUS ดันลง */
 .side-panel.left{
   margin-top: 0 !important;
+}
+
+.admin-toolbar{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #f6f7f9;
+  border-radius: 12px;
+}
+
+.admin-btn{
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #111;
+  color: #fff;
+}
+
+.admin-btn.danger{
+  background: #b91c1c;
+}
+
+.admin-hint{
+  margin-left: auto;
+  font-weight: 700;
+  opacity: .8;
+}
+.admin-selected{
+  outline: 3px dashed #ff6a00;
+  transform: translateY(-1px);
+}
+
+/* ===== Modal ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 2000;
+}
+
+.modal-card{
+  width: 520px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.2);
+}
+
+.modal-options{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.modal-actions{
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+}
+
+/* ===== Block/Object item ===== */
+.block-item{
+  position:absolute;
+  width: 110px;
+  height: 44px;
+  background: #cfcfcf;
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 800;
+  color: #111;
+  user-select:none;
+}
+
+/* ===== Admin selected highlight ===== */
+.admin-selected{
+  outline: 3px solid #2563eb;
+}
+
+/* ===== Zone color hint (optional) ===== */
+.zone-A{ background: #e0e0e0; } /* default */
+.zone-B{ background: #d6eaf8; }
+.zone-C{ background: #fdebd0; }
+
+.name-input{
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  outline: none;
+  font-weight: 600;
+}
+
+.name-input:focus{
+  border-color: #2563eb;
+}
+
+/* ถ้าชื่อยาว ให้ตัด ... */
+.seat{
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+.seat {
+  font-size: 11px;
+  line-height: 1.1;
+  padding: 2px;
+  text-align: center;
 }

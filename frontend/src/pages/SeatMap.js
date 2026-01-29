@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/SeatMap.css";
 
@@ -7,62 +7,42 @@ export default function SeatMap() {
   const navigate = useNavigate();
   const state = location.state;
 
-  // ✅ หน้าเป้าหมายที่จะกลับไปหลังเลือกที่นั่ง
-  // ปรับ fallback ให้ตรง route จริงของหนู (ถ้าหน้า calendar คือ /planning ก็ใส่ /planning)
-  const returnTo = state?.returnTo || "/planning";
+  const returnTo = state?.returnTo || "/reserve";
+
+  const role = localStorage.getItem("role"); // "admin" หรือ "user"
+  const isAdmin = role === "admin";
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addKind, setAddKind] = useState("A"); 
+// A | B | C | deco (deco = ของวางเฉยๆ กดไม่ได้)
 
 
-  // ===== Seats layout =====
-  const SEATS = useMemo(() => {
-    const LEFT_COL_X = 100;
-    const RIGHT_A_X = 750;
-    const RIGHT_B_X = 850;
+const [items, setItems] = useState([]);
+const [loading, setLoading] = useState(true);
+const [selectedItemId, setSelectedItemId] = useState(null);
 
-    const TOP_Y = 90;
-    const B_TOP_Y = 70;
-    const B_STEP_Y = 50;
-    const STEP_Y = 57;
 
-    const TOP_ROW_Y = 30;
-    const BOTTOM_ROW_Y = 695;
+useEffect(() => {
+  const load = async () => {
+    try {
+      const res = await fetch("/api/seatmap/items?mapId=main");
+      if (!res.ok) throw new Error("โหลดไม่สำเร็จ");
+      const data = await res.json();
+      setItems(data);
+    } catch (e) {
+      console.error(e);
+      alert("โหลดแผนผังไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  };
+  load();
+}, []);
 
-    return [
-      ...Array.from({ length: 11 }, (_, i) => ({
-        id: `A${i + 1}`,
-        pos: { left: LEFT_COL_X, top: TOP_Y + i * STEP_Y },
-      })),
-
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: `A${22 - i}`,
-        pos: { left: RIGHT_A_X, top: TOP_Y + i * STEP_Y },
-      })),
-
-      ...Array.from({ length: 9 }, (_, i) => ({
-        id: `B${4 + i}`,
-        pos: { left: RIGHT_B_X, top: B_TOP_Y + i * B_STEP_Y },
-      })),
-
-      { id: "C1", pos: { left: 630, top: TOP_ROW_Y } },
-      { id: "B1", pos: { left: 700, top: TOP_ROW_Y } },
-      { id: "B2", pos: { left: 757, top: TOP_ROW_Y } },
-      { id: "B3", pos: { left: 815, top: TOP_ROW_Y } },
-
-      { id: "C4", pos: { left: 350, top: 735 } },
-      { id: "C5", pos: { left: 580, top: BOTTOM_ROW_Y } },
-      { id: "C6", pos: { left: 690, top: BOTTOM_ROW_Y } },
-      { id: "C7", pos: { left: 800, top: BOTTOM_ROW_Y } },
-
-      { id: "C2", pos: { left: 220, top: 800 } },
-      { id: "C3", pos: { left: 350, top: 800 } },
-
-      { id: "B13", pos: { left: 85, top: 790 }, size: "tiny" },
-      { id: "B14", pos: { left: 125, top: 790 }, size: "tiny" },
-      { id: "B15", pos: { left: 105, top: 820 }, size: "tiny" },
-    ];
-  }, []);
 
   const takenSeats = useMemo(() => new Set(), []);
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [addName, setAddName] = useState("");
 
   // ===== กันเข้าหน้านี้แบบไม่มี state =====
   if (!state) {
@@ -76,6 +56,69 @@ export default function SeatMap() {
       </div>
     );
   }
+  const handleAddSeat = async (kind, name) => {
+  // kind: "A" | "B" | "C" | "deco"
+  const isDeco = kind === "deco";
+  
+
+
+  const payload = {
+    mapId: "main",
+    type: isDeco ? "block" : "seat",        // ✅ deco เป็น block (กดไม่ได้)
+    seatId: isDeco ? null : `NEW${Date.now()}`,
+    zone: isDeco ? null : kind,            // ✅ A/B/C
+    size: "normal",
+    pos: { left: 120, top: 120 },
+    meta: {
+      name: name?.trim() || (isDeco ? "Object" : ""),
+      ...(isDeco ? { label: "Object" } : {}),
+    },
+    isActive: true,
+  };
+
+  const res = await fetch("/api/seatmap/items", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-role": localStorage.getItem("role"),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    alert("เพิ่มไม่ได้ (ต้องเป็น admin หรือ API ไม่เจอ)");
+    return;
+  }
+
+  const created = await res.json();
+  setItems((prev) => [...prev, created]);
+  setShowAddModal(false);
+  setAddName(""); // ✅ เคลียร์ช่อง
+};
+
+
+const handleDeleteSelected = async () => {
+  if (!selectedItemId) {
+    alert("ยังไม่ได้เลือกโต๊ะที่จะลบ");
+    return;
+  }
+
+  const res = await fetch(`/api/seatmap/items/${selectedItemId}`, {
+    method: "DELETE",
+    headers: {
+      "x-role": localStorage.getItem("role"),
+    },
+  });
+
+  if (!res.ok) {
+    alert("ลบไม่ได้ (ต้องเป็น admin)");
+    return;
+  }
+
+  setItems((prev) => prev.filter((x) => x._id !== selectedItemId));
+  setSelectedItemId(null);
+};
+
 
   const handlePick = (seatId) => {
     if (takenSeats.has(seatId)) return;
@@ -118,11 +161,10 @@ export default function SeatMap() {
 
 
   return (
-  <div className="seatmap-shell">
-    {/* LEFT: STATUS */}
-    <aside className="side-panel left">
-      <h3 className="side-title">STATUS</h3>
-
+    <div className="seatmap-shell">
+      {/* LEFT: STATUS */}
+      <aside className="side-panel left">
+        <h3 className="side-title">STATUS</h3>
       <div className="status-item">
         <span className="dot available" />
         <span>Available</span>
@@ -161,9 +203,91 @@ export default function SeatMap() {
 
     {/* CENTER: MAP */}
     <div className="seatmap-page">
-      {/* ===== Header ===== */}
-      {/* การ์ดข้อมูลการจอง (สีตามวัน) */}
-      
+      {isAdmin && (
+    <div className="admin-toolbar">
+      <button className="admin-btn" onClick={() => setShowAddModal(true)}>
+  + Add
+</button>
+
+      <button className="admin-btn danger" onClick={handleDeleteSelected}>Delete Selected</button>
+
+      <div className="admin-hint">
+        Selected item: <b>{selectedItemId || "-"}</b>
+      </div>
+    </div>
+  )}
+  {isAdmin && showAddModal && (
+  <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      <h3 style={{ marginTop: 0 }}>เลือกประเภทที่จะเพิ่ม</h3>
+
+      <div className="modal-options">
+        <label>
+          <input
+            type="radio"
+            name="kind"
+            value="A"
+            checked={addKind === "A"}
+            onChange={() => setAddKind("A")}
+          />
+          <b>A</b> — Tables for groups of 2–4 people
+        </label>
+
+        <label>
+          <input
+            type="radio"
+            name="kind"
+            value="B"
+            checked={addKind === "B"}
+            onChange={() => setAddKind("B")}
+          />
+          <b>B</b> — Tables for groups of 1 people
+        </label>
+
+        <label>
+          <input
+            type="radio"
+            name="kind"
+            value="C"
+            checked={addKind === "C"}
+            onChange={() => setAddKind("C")}
+          />
+          <b>C</b> — Tables for groups of 4–6 people
+        </label>
+
+        <label>
+          <input
+            type="radio"
+            name="kind"
+            value="deco"
+            checked={addKind === "deco"}
+            onChange={() => setAddKind("deco")}
+          />
+          <b>Object</b> — ของวาง/สิ่งกีดขวาง (กดเลือกไม่ได้)
+        </label>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+  <label style={{ fontWeight: 800 }}>ชื่อโต๊ะที่จะแสดงบนแผนผัง</label>
+  <input
+    value={addName}
+    onChange={(e) => setAddName(e.target.value)}
+    placeholder="เช่น โต๊ะ A-ริมหน้าต่าง / โต๊ะคอม 1"
+    className="name-input"
+  />
+</div>
+
+      <div className="modal-actions">
+        <button className="admin-btn" onClick={() => handleAddSeat(addKind, addName)}>
+  Add
+</button>
+        <button className="admin-btn danger" onClick={() => setShowAddModal(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
       <div className="seatmap-canvas">
@@ -191,29 +315,55 @@ export default function SeatMap() {
 
           <div className="control-room">ห้องควบคุมไฟฟ้า</div>
 
-          {SEATS.map((s) => {
-            const isTaken = takenSeats.has(s.id);
-            const isSelected = selectedSeat === s.id;
+          {items.map((it) => {
+  const isSeat = it.type === "seat";
+  const isBlock = it.type === "block";
+  if (!isSeat && !isBlock) return null;
 
-            return (
-              <button
-                key={s.id}
-                className={[
-                  "seat",
-                  "seat-abs",
-                  /^B([1-9]|1[0-2])$/.test(s.id) ? "seat-b" : "",
-                  s.size === "tiny" ? "seat-tiny" : "",
-                  isTaken ? "taken" : "",
-                  isSelected ? "selected" : "",
-                ].join(" ")}
-                style={{ left: s.pos.left, top: s.pos.top }}
-                onClick={() => handlePick(s.id)}
-                disabled={isTaken}
-              >
-                {s.id}
-              </button>
-            );
-          })}
+  if (isBlock) {
+    // ✅ ของวาง: แสดงเป็นกล่องเทา กดไม่ได้
+    return (
+      <div
+        key={it._id}
+        className={`seat-abs block-item ${selectedItemId === it._id ? "admin-selected" : ""}`}
+        style={{ left: it.pos.left, top: it.pos.top }}
+        onClick={() => isAdmin && setSelectedItemId(it._id)}
+      >
+        {it.meta?.name || it.meta?.label || "Object"}
+      </div>
+    );
+  }
+
+  // ✅ seat ปกติ: กดได้ (user) / เลือกแก้ไขได้ (admin)
+  const isTaken = takenSeats.has(it.seatId);
+  const isSelected = selectedSeat === it.seatId;
+
+  return (
+    <button
+      key={it._id}
+      className={[
+        "seat",
+        "seat-abs",
+        it.zone === "B" ? "seat-b" : "",
+        it.size === "tiny" ? "seat-tiny" : "",
+        isTaken ? "taken" : "",
+        isSelected ? "selected" : "",
+        selectedItemId === it._id ? "admin-selected" : "",
+        it.zone ? `zone-${it.zone}` : "",
+      ].join(" ")}
+      style={{ left: it.pos.left, top: it.pos.top }}
+      onClick={() => {
+        if (isAdmin) setSelectedItemId(it._id);
+        else handlePick(it.seatId);
+      }}
+      disabled={!isAdmin && isTaken}
+    >
+      {it.meta?.name?.trim() ? it.meta.name : it.seatId}
+    </button>
+  );
+})}
+
+
         </div>
       </div>
 
