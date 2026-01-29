@@ -9,13 +9,26 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [bookings, setBookings] = useState([]);
+  // --- แก้ไขจุดนี้: โหลดข้อมูลทันทีที่สร้าง State เพื่อป้องกันการเขียนทับด้วยค่าว่าง ---
+  const [bookings, setBookings] = useState(() => {
+    const saved = localStorage.getItem("bookings");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error parsing bookings:", e);
+        return [];
+      }
+    }
+    return [];
+  });
+
   const [draft, setDraft] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // --- 1. ระบบนับเวลา Real-time สำหรับ Header ---
+  // --- ระบบนับเวลา Real-time สำหรับ Header ---
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -30,24 +43,12 @@ export default function Reserve() {
     return `${day}.${month}.${year}`;
   };
 
-  // โหลด booking
-  useEffect(() => {
-    const saved = localStorage.getItem("bookings");
-    if (saved) {
-      try {
-        setBookings(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, []);
-
-  // save booking
+  // บันทึกข้อมูลลง LocalStorage ทุกครั้งที่มีการเปลี่ยนแปลง bookings
   useEffect(() => {
     localStorage.setItem("bookings", JSON.stringify(bookings));
   }, [bookings]);
 
-  // draft จาก seatmap / localStorage
+  // จัดการ draft จาก seatmap หรือ localStorage
   useEffect(() => {
     if (location.state?.booking) {
       const returned = location.state.booking;
@@ -85,11 +86,9 @@ export default function Reserve() {
     return d;
   }, [today]);
 
-  // --- 2. แก้ไขส่วนนี้เพื่อให้สัปดาห์เริ่มที่วันจันทร์เสมอ ---
   const days = useMemo(() => {
     const baseDate = new Date(today);
     const dayOfWeek = today.getDay(); 
-    // ถ้าวันนี้วันอาทิตย์ (0) ถอย 6 วัน, วันอื่นถอย (dayOfWeek - 1)
     const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     baseDate.setDate(today.getDate() - diffToMonday);
 
@@ -120,8 +119,7 @@ export default function Reserve() {
 
   return (
     <div className="reserve-page">
-
-      {/* --- 3. แก้ไข Header ตามรูปภาพที่ส่งมา --- */}
+      {/* HEADER */}
       <div className="reserve-header">
         <h1>Reserve</h1>
         <div className="header-info">
@@ -132,7 +130,6 @@ export default function Reserve() {
       </div>
 
       <div className="calendar-scroll">
-
         {/* WEEK NAV */}
         <div className="week-nav">
           <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
@@ -149,10 +146,7 @@ export default function Reserve() {
           <div className="time-col" />
           {days.map((d) => (
             <div key={d.toDateString()} className="day-title">
-              {d.toLocaleDateString("en-GB", {
-                weekday: "short",
-                day: "numeric",
-              })}
+              {d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}
             </div>
           ))}
         </div>
@@ -162,7 +156,6 @@ export default function Reserve() {
           {hours.map((hour) => (
             <div className="hour-row" key={hour}>
               <div className="time-col">{hour}:00</div>
-
               {days.map((day) => {
                 const disabled = isDisabled(day);
                 const bookingsHere = bookings.filter(
@@ -178,7 +171,6 @@ export default function Reserve() {
                     className={`cell ${disabled ? "disabled" : ""}`}
                     onClick={() => {
                       if (disabled) return;
-
                       const newDraft = {
                         date: day,
                         startTime: hour,
@@ -186,14 +178,10 @@ export default function Reserve() {
                         seatId: null,
                         subject: "",
                       };
-
                       setDraft(newDraft);
                       localStorage.setItem(
                         "draftBooking",
-                        JSON.stringify({
-                          ...newDraft,
-                          date: day.toISOString(),
-                        })
+                        JSON.stringify({ ...newDraft, date: day.toISOString() })
                       );
                     }}
                   >
@@ -240,17 +228,10 @@ export default function Reserve() {
           onSelectSeat={(currentDraft) => {
             localStorage.setItem(
               "draftBooking",
-              JSON.stringify({
-                ...currentDraft,
-                date: currentDraft.date.toISOString(),
-              })
+              JSON.stringify({ ...currentDraft, date: currentDraft.date.toISOString() })
             );
             navigate("/seatmap", {
-              state: {
-                ...currentDraft,
-                date: currentDraft.date.toISOString(),
-                returnTo: "/reserve",
-              },
+              state: { ...currentDraft, date: currentDraft.date.toISOString(), returnTo: "/reserve" },
             });
           }}
         />
@@ -258,14 +239,9 @@ export default function Reserve() {
 
       {showCancelPopup && (
         <CancelPopup
-          onCancel={() => {
-            setShowCancelPopup(false);
-            setSelectedBooking(null);
-          }}
+          onCancel={() => { setShowCancelPopup(false); setSelectedBooking(null); }}
           onConfirm={() => {
-            setBookings((prev) =>
-              prev.filter((b) => b.id !== selectedBooking.id)
-            );
+            setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
             setShowCancelPopup(false);
             setSelectedBooking(null);
           }}
