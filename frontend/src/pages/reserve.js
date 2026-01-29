@@ -143,7 +143,6 @@ export default function Reserve() {
               {days.map((day) => {
                 const disabled = isDisabled(day);
                 
-                // หา Booking ที่ "เริ่มต้น" ในชั่วโมงนี้เท่านั้น
                 const startingBookings = bookings.filter(
                   (b) =>
                     new Date(b.date).toDateString() === day.toDateString() &&
@@ -186,6 +185,7 @@ export default function Reserve() {
         </div>
       </div>
 
+      {/* --- POPUPS RENDERED AT THE END --- */}
       {draft && (
         <ReservePopup
           key={draft.seatId ? `seat-${draft.seatId}` : "no-seat"}
@@ -220,7 +220,10 @@ export default function Reserve() {
 
       {showCancelPopup && (
         <CancelPopup
-          onCancel={() => { setShowCancelPopup(false); setSelectedBooking(null); }}
+          onCancel={() => { 
+            setShowCancelPopup(false); 
+            setSelectedBooking(null); 
+          }}
           onConfirm={() => {
             setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
             setShowCancelPopup(false);

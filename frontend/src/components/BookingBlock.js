@@ -52,9 +52,11 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
           <button
             className="delete-icon-btn"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onRequestDelete(booking);
             }}
+
           >
             ✕
           </button>
