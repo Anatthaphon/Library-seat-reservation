@@ -24,6 +24,9 @@ const scheduleRoutes = require('./routes/scheduleRoutes');
 
 app.use('/api/schedules', scheduleRoutes);
 
+const seatMapRoutes = require("./routes/seatMapRoutes");
+app.use("/api/seatmap", seatMapRoutes);
+
 app.get('/', (req, res) => {
   res.json({ message: 'Seat Reservation API is running' });
 });

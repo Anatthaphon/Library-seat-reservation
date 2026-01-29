@@ -6,6 +6,15 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
+        <button
+          onClick={() => {
+            const next = localStorage.getItem("role") === "admin" ? "user" : "admin";
+            localStorage.setItem("role", next);
+            window.location.reload();
+          }}
+        >
+          Switch Role
+        </button>
 
         {/* เว้นฝั่งซ้ายไว้โล่ง ๆ */}
         <div></div>
