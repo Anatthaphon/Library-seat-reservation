@@ -19,7 +19,6 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
   };
 
   const themeColor = getColorByDay(booking.date);
-  // คำนวณจำนวนชั่วโมง
   const duration = booking.endTime - booking.startTime;
 
   return (
@@ -27,12 +26,15 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
       className={`new-booking-card ${past ? "is-past" : ""}`}
       style={{ 
         borderColor: themeColor,
-        // คำนวณความสูง: จำนวนชั่วโมง * 100% แล้วลบระยะห่างนิดหน่อย
         height: `calc(${duration} * 100% - 12px)`, 
         zIndex: 50 
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      // แก้ไขตรงนี้: กันการคลิกทะลุไปที่ cell ตาราง
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       <div
         className="card-header-bar"
@@ -53,10 +55,9 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
             className="delete-icon-btn"
             onClick={(e) => {
               e.preventDefault();
-              e.stopPropagation();
+              e.stopPropagation(); // กันไม่ให้เด้ง Popup จอง
               onRequestDelete(booking);
             }}
-
           >
             ✕
           </button>
