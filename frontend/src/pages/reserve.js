@@ -10,23 +10,24 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // --- CONFIG: ปรับค่าจำนวนครั้งสูงสุดที่นื่ ---
+  const MAX_CANCEL_PER_MONTH = 100; 
+
   const [bookings, setBookings] = useState(() => {
     const saved = localStorage.getItem("bookings");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error parsing bookings:", e);
-        return [];
-      }
-    }
-    return [];
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // เก็บประวัติการยกเลิกในรูปแบบ [{ date: "ISOString" }]
+  const [cancelHistory, setCancelHistory] = useState(() => {
+    const saved = localStorage.getItem("cancelHistory");
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [draft, setDraft] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
-  const [showViewPopup, setShowViewPopup] = useState(false); // ควบคุมการเปิด View Mode
+  const [showViewPopup, setShowViewPopup] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -34,6 +35,28 @@ export default function Reserve() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("bookings", JSON.stringify(bookings));
+  }, [bookings]);
+
+  useEffect(() => {
+    localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
+  }, [cancelHistory]);
+
+  // คำนวณจำนวนครั้งที่ยกเลิกในเดือนปัจจุบัน
+  const cancelCountThisMonth = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return cancelHistory.filter(item => {
+      const cancelDate = new Date(item.date);
+      return cancelDate.getMonth() === currentMonth && cancelDate.getFullYear() === currentYear;
+    }).length;
+  }, [cancelHistory]);
+
+  const currentMonthName = currentTime.toLocaleDateString("en-GB", { month: "long" });
 
   const formatHeaderDate = (date) => {
     const day = String(date.getDate()).padStart(2, '0');
@@ -43,16 +66,9 @@ export default function Reserve() {
   };
 
   useEffect(() => {
-    localStorage.setItem("bookings", JSON.stringify(bookings));
-  }, [bookings]);
-
-  useEffect(() => {
     if (location.state?.booking) {
       const returned = location.state.booking;
-      const updated = {
-        ...returned,
-        date: new Date(returned.date),
-      };
+      const updated = { ...returned, date: new Date(returned.date) };
       setDraft(updated);
       localStorage.setItem("draftBooking", JSON.stringify({ ...updated, date: updated.date.toISOString() }));
       window.history.replaceState({}, document.title);
@@ -94,17 +110,14 @@ export default function Reserve() {
   const isDisabled = (day) => {
     const compareToday = new Date(today);
     compareToday.setHours(0, 0, 0, 0);
-    const isSunday = day.getDay() === 0;
-    const isPast = day < compareToday;
-    const isTooFar = day > maxDate;
-    return isPast || isSunday || isTooFar;
+    return day.getDay() === 0 || day < compareToday || day > maxDate;
   };
 
-  const isPastBooking = (booking) => {
-    const now = new Date();
-    const end = new Date(booking.date);
-    end.setHours(booking.endTime, 0, 0, 0);
-    return end < now;
+  const handleConfirmDelete = () => {
+    setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
+    setCancelHistory((prev) => [...prev, { date: new Date().toISOString() }]);
+    setShowCancelPopup(false);
+    setSelectedBooking(null);
   };
 
   return (
@@ -112,7 +125,13 @@ export default function Reserve() {
       <div className="reserve-header">
         <h1>Reserve</h1>
         <div className="header-info">
-          <span>Constructor</span>
+          {/* แสดง Quota การยกเลิกแทนที่ Constructor */}
+          <span style={{ 
+            color: cancelCountThisMonth >= MAX_CANCEL_PER_MONTH ? '#ff4d4f' : 'inherit', 
+            fontWeight: 'bold' 
+          }}>
+            {cancelCountThisMonth}/{MAX_CANCEL_PER_MONTH} in {currentMonthName}
+          </span>
           <span>Time {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
           <span>Day {formatHeaderDate(currentTime)}</span>
         </div>
@@ -133,12 +152,8 @@ export default function Reserve() {
           <div className="time-col" />
           {days.map((d) => (
             <div key={d.toDateString()} className="day-title">
-              <div className="day-name">
-                {d.toLocaleDateString("en-GB", { weekday: "long" })}
-              </div>
-              <div className="day-number">
-                {d.getDate()}
-              </div>
+              <div className="day-name">{d.toLocaleDateString("en-GB", { weekday: "long" })}</div>
+              <div className="day-number">{d.getDate()}</div>
             </div>
           ))}
         </div>
@@ -149,39 +164,27 @@ export default function Reserve() {
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
                 const disabled = isDisabled(day);
-                
-                const startingBookings = bookings.filter(
-                  (b) =>
-                    new Date(b.date).toDateString() === day.toDateString() &&
-                    b.startTime === hour
+                const startingBookings = bookings.filter(b => 
+                  new Date(b.date).toDateString() === day.toDateString() && b.startTime === hour
                 );
-
                 const isAlreadyBooked = bookings.some(b => 
-                  new Date(b.date).toDateString() === day.toDateString() &&
-                  hour >= b.startTime && hour < b.endTime
+                  new Date(b.date).toDateString() === day.toDateString() && hour >= b.startTime && hour < b.endTime
                 );
 
                 return (
                   <div
                     key={day.toDateString() + hour}
                     className={`cell ${disabled ? "disabled" : ""} ${isAlreadyBooked ? "booked" : ""}`}
-                    style={{ position: "relative" }} 
                     onClick={() => {
                       if (disabled || isAlreadyBooked) return; 
-                      setDraft({
-                        date: day,
-                        startTime: hour,
-                        endTime: hour + 1,
-                        seatId: null,
-                        subject: "",
-                      });
+                      setDraft({ date: day, startTime: hour, endTime: hour + 1, seatId: null, subject: "" });
                     }}
                   >
                     {startingBookings.map((b) => (
                       <BookingBlock
                         key={b.id}
                         booking={b}
-                        past={isPastBooking(b)}
+                        past={new Date(b.date).setHours(b.endTime) < new Date()}
                         onShowDetails={(booking) => {
                           setSelectedBooking(booking);
                           setShowViewPopup(true);
@@ -198,33 +201,17 @@ export default function Reserve() {
 
       {draft && (
         <ReservePopup
-          key={draft.seatId ? `seat-${draft.seatId}` : "no-seat"}
           data={draft}
           allBookings={bookings}
-          onClose={() => {
+          onClose={() => { localStorage.removeItem("draftBooking"); setDraft(null); }}
+          onAccept={(final) => {
+            setBookings(prev => [...prev, { ...final, date: final.date.toISOString(), id: Date.now() + Math.random() }]);
             localStorage.removeItem("draftBooking");
             setDraft(null);
           }}
-          onAccept={(finalBooking) => {
-            setBookings((prev) => [
-              ...prev,
-              {
-                ...finalBooking,
-                date: finalBooking.date.toISOString(),
-                id: Date.now() + Math.random(),
-              },
-            ]);
-            localStorage.removeItem("draftBooking");
-            setDraft(null);
-          }}
-          onSelectSeat={(currentDraft) => {
-            localStorage.setItem(
-              "draftBooking",
-              JSON.stringify({ ...currentDraft, date: currentDraft.date.toISOString() })
-            );
-            navigate("/seatmap", {
-              state: { ...currentDraft, date: currentDraft.date.toISOString(), returnTo: "/reserve" },
-            });
+          onSelectSeat={(curr) => {
+            localStorage.setItem("draftBooking", JSON.stringify({ ...curr, date: curr.date.toISOString() }));
+            navigate("/seatmap", { state: { ...curr, date: curr.date.toISOString(), returnTo: "/reserve" } });
           }}
         />
       )}
@@ -232,11 +219,12 @@ export default function Reserve() {
       {showViewPopup && (
         <ViewBookingPopup
           booking={selectedBooking}
-          onClose={() => {
-            setShowViewPopup(false);
-            setSelectedBooking(null);
-          }}
-          onDelete={(booking) => {
+          onClose={() => { setShowViewPopup(false); setSelectedBooking(null); }}
+          onDelete={() => {
+            if (cancelCountThisMonth >= MAX_CANCEL_PER_MONTH) {
+              alert(`You have reached the limit of ${MAX_CANCEL_PER_MONTH} cancellations this month.`);
+              return;
+            }
             setShowViewPopup(false);
             setShowCancelPopup(true);
           }}
@@ -245,15 +233,8 @@ export default function Reserve() {
 
       {showCancelPopup && (
         <CancelPopup
-          onCancel={() => { 
-            setShowCancelPopup(false); 
-            setSelectedBooking(null); 
-          }}
-          onConfirm={() => {
-            setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
-            setShowCancelPopup(false);
-            setSelectedBooking(null);
-          }}
+          onCancel={() => { setShowCancelPopup(false); setSelectedBooking(null); }}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </div>
