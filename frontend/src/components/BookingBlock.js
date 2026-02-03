@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import "../styles/BookingBlock.css";
 
-export default function BookingBlock({ booking, onRequestDelete, past }) {
+// เปลี่ยน Prop จาก onRequestDelete เป็น onShowDetails ตามที่ Reserve.js ส่งมา
+export default function BookingBlock({ booking, onShowDetails, past }) {
   const [hover, setHover] = useState(false);
 
   const getColorByDay = (dateStr) => {
@@ -27,13 +28,17 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
       style={{ 
         borderColor: themeColor,
         height: `calc(${duration} * 100% - 12px)`, 
-        zIndex: 50 
+        zIndex: 50,
+        cursor: 'pointer' // ทำให้รู้ว่ากดได้ทั้งอัน
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      // แก้ไขตรงนี้: กันการคลิกทะลุไปที่ cell ตาราง
+      // เมื่อคลิกที่ตัว Block ให้เปิดดูรายละเอียด
       onClick={(e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // กันการคลิกทะลุไปที่ช่องตาราง
+        if (onShowDetails) {
+          onShowDetails(booking);
+        }
       }}
     >
       <div
@@ -50,18 +55,7 @@ export default function BookingBlock({ booking, onRequestDelete, past }) {
           Seat {booking.seatId}
         </span>
 
-        {hover && !past && (
-          <button
-            className="delete-icon-btn"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation(); // กันไม่ให้เด้ง Popup จอง
-              onRequestDelete(booking);
-            }}
-          >
-            ✕
-          </button>
-        )}
+        {/* ❌ เอาปุ่มปุ่มลบ (กากบาท) เดิมออกถาวร */}
       </div>
     </div>
   );

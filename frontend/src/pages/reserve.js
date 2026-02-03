@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ReservePopup from "./ReservePopup";
+import ViewBookingPopup from "../components/ViewBookingPopup"; // ไฟล์ใหม่ที่เราสร้าง
 import CancelPopup from "../components/CancelPopup";
 import BookingBlock from "../components/BookingBlock";
 import "../styles/Reserve.css";
@@ -25,6 +26,7 @@ export default function Reserve() {
   const [draft, setDraft] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [showViewPopup, setShowViewPopup] = useState(false); // ควบคุมการเปิด View Mode
   const [weekOffset, setWeekOffset] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -131,7 +133,6 @@ export default function Reserve() {
           <div className="time-col" />
           {days.map((d) => (
             <div key={d.toDateString()} className="day-title">
-              {/* ✅ ปรับให้แสดงชื่อวันบน และวันที่ล่าง (ต้องใช้คู่กับ CSS ที่ให้ไปก่อนหน้า) */}
               <div className="day-name">
                 {d.toLocaleDateString("en-GB", { weekday: "long" })}
               </div>
@@ -149,14 +150,12 @@ export default function Reserve() {
               {days.map((day) => {
                 const disabled = isDisabled(day);
                 
-                // ค้นหาการจองที่ "เริ่มต้น" ในชั่วโมงนี้
                 const startingBookings = bookings.filter(
                   (b) =>
                     new Date(b.date).toDateString() === day.toDateString() &&
                     b.startTime === hour
                 );
 
-                // ✅ เช็กว่าชั่วโมงนี้มีคนจองไปแล้วหรือยัง (กันคลิกสร้าง Draft ซ้ำในเวลาเดิม)
                 const isAlreadyBooked = bookings.some(b => 
                   new Date(b.date).toDateString() === day.toDateString() &&
                   hour >= b.startTime && hour < b.endTime
@@ -183,9 +182,9 @@ export default function Reserve() {
                         key={b.id}
                         booking={b}
                         past={isPastBooking(b)}
-                        onRequestDelete={(booking) => {
+                        onShowDetails={(booking) => {
                           setSelectedBooking(booking);
-                          setShowCancelPopup(true);
+                          setShowViewPopup(true);
                         }}
                       />
                     ))}
@@ -226,6 +225,20 @@ export default function Reserve() {
             navigate("/seatmap", {
               state: { ...currentDraft, date: currentDraft.date.toISOString(), returnTo: "/reserve" },
             });
+          }}
+        />
+      )}
+
+      {showViewPopup && (
+        <ViewBookingPopup
+          booking={selectedBooking}
+          onClose={() => {
+            setShowViewPopup(false);
+            setSelectedBooking(null);
+          }}
+          onDelete={(booking) => {
+            setShowViewPopup(false);
+            setShowCancelPopup(true);
           }}
         />
       )}
