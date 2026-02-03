@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ReservePopup from "./ReservePopup";
-import ViewBookingPopup from "../components/ViewBookingPopup"; // ไฟล์ใหม่ที่เราสร้าง
+import ViewBookingPopup from "../components/ViewBookingPopup"; 
 import CancelPopup from "../components/CancelPopup";
 import BookingBlock from "../components/BookingBlock";
 import "../styles/Reserve.css";
@@ -9,6 +9,7 @@ import "../styles/Reserve.css";
 export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
+  
   const MAX_CANCEL_PER_MONTH = 100; 
 
   // 1. Load Data from LocalStorage
@@ -44,14 +45,11 @@ export default function Reserve() {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
   }, [cancelHistory]);
 
-  // 4. ✅ Logic รับข้อมูลจากหน้าอื่น (Planning/SeatMap) และล้างข้อมูลให้สะอาด
+  // 4. Logic รับข้อมูลจากหน้าอื่น
   useEffect(() => {
     if (location.state?.booking) {
       const incoming = location.state.booking;
-      
-      // ถ้าเป็นการจองใหม่ (ยังไม่มี ID)
       if (!incoming.id) {
-        // ฟังก์ชันแปลงเวลาจาก "10:00" หรือ "10:00:00" ให้เป็นตัวเลข 10
         const formatToHourNumber = (t) => {
           if (typeof t === 'number') return t;
           const hourPart = String(t).split(':')[0];
@@ -64,13 +62,12 @@ export default function Reserve() {
         const newBooking = {
           ...incoming,
           id: Date.now() + Math.random(),
-          startTime: startTime, // เก็บเป็นตัวเลขเพื่อคำนวณความสูงบล็อกได้แม่นยำ
+          startTime: startTime, 
           endTime: endTime,
           date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
         };
         
         setBookings(prev => {
-          // กันจองซ้ำ (Duplicate Check)
           const isDuplicate = prev.some(b => 
             b.date === newBooking.date && 
             b.startTime === newBooking.startTime && 
@@ -79,7 +76,6 @@ export default function Reserve() {
           return isDuplicate ? prev : [...prev, newBooking];
         });
       }
-      // ล้าง state เพื่อไม่ให้จองซ้ำตอน refresh
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -142,7 +138,6 @@ export default function Reserve() {
       <div className="reserve-header">
         <h1>Reserve</h1>
         <div className="header-info">
-          {/* แสดงโควตาการยกเลิกแทน Constructor */}
           <span style={{ color: cancelCountThisMonth >= MAX_CANCEL_PER_MONTH ? '#ff4d4f' : 'inherit', fontWeight: 'bold' }}>
             {cancelCountThisMonth}/{MAX_CANCEL_PER_MONTH} in {currentMonthName}
           </span>
@@ -174,8 +169,6 @@ export default function Reserve() {
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
                 const disabled = isDisabled(day);
-                
-                // ตรวจสอบข้อมูลการจอง
                 const startingBookings = bookings.filter(b => 
                   new Date(b.date).toDateString() === day.toDateString() && 
                   parseInt(b.startTime) === hour
@@ -202,7 +195,6 @@ export default function Reserve() {
                       <BookingBlock
                         key={b.id}
                         booking={b}
-                        // เช็คว่าเป็นเวลาในอดีตหรือไม่
                         past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
                         onShowDetails={(booking) => {
                           setSelectedBooking(booking);
@@ -216,6 +208,11 @@ export default function Reserve() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ✅ เพิ่มข้อความคำเตือนใต้ตาราง (ลอจิกจากรูปที่คุณส่งมา) */}
+      <div className="cancel-policy-notice">
+        * การยกเลิกการจองสามารถทำได้สูงสุด 3 ครั้งต่อเดือนเท่านั้น
       </div>
 
       {/* Popups */}
@@ -241,7 +238,7 @@ export default function Reserve() {
           onClose={() => { setShowViewPopup(false); setSelectedBooking(null); }}
           onDelete={() => {
             if (cancelCountThisMonth >= MAX_CANCEL_PER_MONTH) {
-              alert(`You can only cancel up to ${MAX_CANCEL_PER_MONTH} times per month.`);
+              alert(`คุณยกเลิกการจองครบกำหนด ${MAX_CANCEL_PER_MONTH} ครั้งต่อเดือนแล้ว`);
               return;
             }
             setShowViewPopup(false);

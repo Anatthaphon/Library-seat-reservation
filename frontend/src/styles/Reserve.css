@@ -183,3 +183,16 @@
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   cursor: pointer;
 }
+
+.cancel-policy-notice {
+  color: #ff4d4f !important; 
+  font-size: 18px !important;  
+  font-weight: 600; 
+  text-align: center;
+  margin-top: 50px;           
+  margin-bottom: 40px;
+  padding: 15px;
+  width: 100%;
+  display: block;            
+  border-top: 1px dashed #ffccc7; 
+}
