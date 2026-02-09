@@ -94,3 +94,8 @@
 }
 
 .clickable { cursor: pointer; transition: background 0.2s; }
+
+.input-field::placeholder {
+  color: #7c8db5; /* น้ำเงินเดียวกับ Time Spent */
+  opacity: 1;     /* กัน browser ลดความเข้ม */
+}
