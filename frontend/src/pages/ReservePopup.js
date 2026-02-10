@@ -65,7 +65,6 @@ export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, al
 
   return (
     <div className="event-popup-overlay">
-      <div className="event-header-label">Reservation Details</div>
       <div className="event-popup">
         <div className="form-row space-between">
           <span>Duration (Max 3 hrs)</span>
