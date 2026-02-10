@@ -54,7 +54,6 @@ export default function ReservePopup({ data, onClose, onAccept, onSelectSeat }) 
 
   return (
     <div className="event-popup-overlay">
-      <div className="event-header-label">Reservation Details</div>
       <div className="event-popup">
         
         {/* เลือกเวลา */}
