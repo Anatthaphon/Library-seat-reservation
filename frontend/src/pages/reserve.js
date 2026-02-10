@@ -10,9 +10,8 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const MAX_CANCEL_PER_MONTH = 100; 
+  const MAX_CANCEL_PER_MONTH = 3; 
 
-  // 1. Load Data from LocalStorage
   const [bookings, setBookings] = useState(() => {
     const saved = localStorage.getItem("bookings");
     return saved ? JSON.parse(saved) : [];
@@ -23,7 +22,6 @@ export default function Reserve() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 2. States for UI
   const [draft, setDraft] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
@@ -31,7 +29,6 @@ export default function Reserve() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 3. Sync Clock & LocalStorage
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -45,33 +42,24 @@ export default function Reserve() {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
   }, [cancelHistory]);
 
-  // 4. Logic รับข้อมูลจากหน้าอื่น
   useEffect(() => {
     if (location.state?.booking) {
       const incoming = location.state.booking;
       if (!incoming.id) {
         const formatToHourNumber = (t) => {
           if (typeof t === 'number') return t;
-          const hourPart = String(t).split(':')[0];
-          return parseInt(hourPart, 10);
+          return parseInt(String(t).split(':')[0], 10);
         };
-
-        const startTime = formatToHourNumber(incoming.startTime);
-        const endTime = formatToHourNumber(incoming.endTime);
-
         const newBooking = {
           ...incoming,
           id: Date.now() + Math.random(),
-          startTime: startTime, 
-          endTime: endTime,
+          startTime: formatToHourNumber(incoming.startTime), 
+          endTime: formatToHourNumber(incoming.endTime),
           date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
         };
-        
         setBookings(prev => {
           const isDuplicate = prev.some(b => 
-            b.date === newBooking.date && 
-            b.startTime === newBooking.startTime && 
-            b.seatId === newBooking.seatId
+            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatId === newBooking.seatId
           );
           return isDuplicate ? prev : [...prev, newBooking];
         });
@@ -80,7 +68,6 @@ export default function Reserve() {
     }
   }, [location.state]);
 
-  // 5. Quota Calculation
   const cancelCountThisMonth = useMemo(() => {
     const now = new Date();
     return cancelHistory.filter(item => {
@@ -88,13 +75,6 @@ export default function Reserve() {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
   }, [cancelHistory]);
-
-  const currentMonthName = currentTime.toLocaleDateString("en-GB", { month: "long" });
-
-  // 6. Calendar Helpers
-  const formatHeaderDate = (date) => {
-    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getFullYear()).slice(-2)}`;
-  };
 
   const today = useMemo(() => {
     const d = new Date();
@@ -120,10 +100,19 @@ export default function Reserve() {
     });
   }, [today, weekOffset]);
 
-  const hours = Array.from({ length: 10 }, (_, i) => 9 + i);
+  // ✅ แก้ไข: แสดงแถวแค่ 9:00 - 17:00 (แถวสุดท้ายคือ 17:00-18:00)
+  const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
 
-  const isDisabled = (day) => {
-    return day.getDay() === 0 || day < today || day > maxDate;
+  // ✅ แก้ไข: ปิดการจองถ้าเวลาผ่านไปแล้ว หรือเกิน 10 นาทีแรก
+  const isSlotDisabled = (day, hour) => {
+    if (day.getDay() === 0 || day < today || day > maxDate) return true;
+    const now = new Date();
+    const isToday = day.toDateString() === now.toDateString();
+    if (isToday) {
+      if (hour < now.getHours()) return true;
+      if (hour === now.getHours() && now.getMinutes() > 10) return true;
+    }
+    return false;
   };
 
   const handleConfirmDelete = () => {
@@ -139,10 +128,9 @@ export default function Reserve() {
         <h1>Reserve</h1>
         <div className="header-info">
           <span style={{ color: cancelCountThisMonth >= MAX_CANCEL_PER_MONTH ? '#ff4d4f' : 'inherit', fontWeight: 'bold' }}>
-            {cancelCountThisMonth}/{MAX_CANCEL_PER_MONTH} in {currentMonthName}
+            {cancelCountThisMonth}/{MAX_CANCEL_PER_MONTH} in {currentTime.toLocaleDateString("en-GB", { month: "long" })}
           </span>
           <span>Time {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-          <span>Day {formatHeaderDate(currentTime)}</span>
         </div>
       </div>
 
@@ -168,19 +156,14 @@ export default function Reserve() {
             <div className="hour-row" key={hour}>
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
-                const disabled = isDisabled(day);
-                const startingBookings = bookings.filter(b => 
-                  new Date(b.date).toDateString() === day.toDateString() && 
-                  parseInt(b.startTime) === hour
-                );
-
+                const disabled = isSlotDisabled(day, hour);
                 const isAlreadyBooked = bookings.some(b => {
                   const bDate = new Date(b.date).toDateString();
-                  const dDate = day.toDateString();
-                  const s = parseInt(b.startTime);
-                  const e = parseInt(b.endTime);
-                  return bDate === dDate && hour >= s && hour < e;
+                  return bDate === day.toDateString() && hour >= parseInt(b.startTime) && hour < parseInt(b.endTime);
                 });
+                const startingBookings = bookings.filter(b => 
+                  new Date(b.date).toDateString() === day.toDateString() && parseInt(b.startTime) === hour
+                );
 
                 return (
                   <div
@@ -196,10 +179,7 @@ export default function Reserve() {
                         key={b.id}
                         booking={b}
                         past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
-                        onShowDetails={(booking) => {
-                          setSelectedBooking(booking);
-                          setShowViewPopup(true);
-                        }}
+                        onShowDetails={(booking) => { setSelectedBooking(booking); setShowViewPopup(true); }}
                       />
                     ))}
                   </div>
@@ -210,25 +190,20 @@ export default function Reserve() {
         </div>
       </div>
 
-      {/* ✅ เพิ่มข้อความคำเตือนใต้ตาราง (ลอจิกจากรูปที่คุณส่งมา) */}
       <div className="cancel-policy-notice">
         * การยกเลิกการจองสามารถทำได้สูงสุด 3 ครั้งต่อเดือนเท่านั้น
       </div>
 
-      {/* Popups */}
       {draft && (
         <ReservePopup
           data={draft}
           allBookings={bookings}
           onClose={() => setDraft(null)}
           onAccept={(final) => {
-            const newB = { ...final, date: final.date.toISOString(), id: Date.now() + Math.random() };
-            setBookings(prev => [...prev, newB]);
+            setBookings(prev => [...prev, { ...final, date: final.date.toISOString(), id: Date.now() + Math.random() }]);
             setDraft(null);
           }}
-          onSelectSeat={(curr) => {
-            navigate("/seatmap", { state: { ...curr, date: curr.date.toISOString(), returnTo: "/reserve" } });
-          }}
+          onSelectSeat={(curr) => navigate("/seatmap", { state: { ...curr, date: curr.date.toISOString(), returnTo: "/reserve" } })}
         />
       )}
 
@@ -238,7 +213,7 @@ export default function Reserve() {
           onClose={() => { setShowViewPopup(false); setSelectedBooking(null); }}
           onDelete={() => {
             if (cancelCountThisMonth >= MAX_CANCEL_PER_MONTH) {
-              alert(`คุณยกเลิกการจองครบกำหนด ${MAX_CANCEL_PER_MONTH} ครั้งต่อเดือนแล้ว`);
+              alert(`คุณยกเลิกครบ ${MAX_CANCEL_PER_MONTH} ครั้งแล้ว`);
               return;
             }
             setShowViewPopup(false);
@@ -248,10 +223,7 @@ export default function Reserve() {
       )}
 
       {showCancelPopup && (
-        <CancelPopup
-          onCancel={() => { setShowCancelPopup(false); setSelectedBooking(null); }}
-          onConfirm={handleConfirmDelete}
-        />
+        <CancelPopup onCancel={() => setShowCancelPopup(false)} onConfirm={handleConfirmDelete} />
       )}
     </div>
   );
