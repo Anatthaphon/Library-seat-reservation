@@ -159,6 +159,75 @@ const handleDeleteSelected = async () => {
   return dayColors[d] || '#3b82f6';
 };
 
+/* ================= DRAG (ADMIN ONLY) ================= */
+const startDrag = (e, it) => {
+  if (!isAdmin) return;
+
+  e.stopPropagation();
+  setSelectedItemId(it._id);
+
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startLeft = it.pos.left;
+  const startTop = it.pos.top;
+
+  const grid = 10; // snap grid
+  const frame = document.querySelector(".map-frame");
+
+  let latestPos = { left: startLeft, top: startTop };
+
+  const handleMouseMove = (moveEvent) => {
+    const dx = moveEvent.clientX - startX;
+    const dy = moveEvent.clientY - startY;
+
+    let newLeft = startLeft + dx;
+    let newTop = startTop + dy;
+
+    /* ===== Clamp inside frame ===== */
+    if (frame) {
+      const maxX = frame.offsetWidth - 60;
+      const maxY = frame.offsetHeight - 60;
+
+      newLeft = Math.max(0, Math.min(maxX, newLeft));
+      newTop = Math.max(0, Math.min(maxY, newTop));
+    }
+
+    /* ===== Snap ===== */
+    newLeft = Math.round(newLeft / grid) * grid;
+    newTop = Math.round(newTop / grid) * grid;
+
+    latestPos = { left: newLeft, top: newTop };
+
+    setItems(prev =>
+      prev.map(item =>
+        item._id === it._id ? { ...item, pos: latestPos } : item
+      )
+    );
+  };
+
+  const handleMouseUp = async () => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+
+    try {
+      await fetch(`/api/seatmap/items/${it._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-role": localStorage.getItem("role"),
+        },
+        body: JSON.stringify({ pos: latestPos }),
+      });
+    } catch (err) {
+      console.error("Save position error:", err);
+    }
+  };
+
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("mouseup", handleMouseUp);
+};
+
+
 
   return (
     <div className="seatmap-shell">
@@ -321,18 +390,89 @@ const handleDeleteSelected = async () => {
   if (!isSeat && !isBlock) return null;
 
   if (isBlock) {
-    // ✅ ของวาง: แสดงเป็นกล่องเทา กดไม่ได้
-    return (
-      <div
-        key={it._id}
-        className={`seat-abs block-item ${selectedItemId === it._id ? "admin-selected" : ""}`}
-        style={{ left: it.pos.left, top: it.pos.top }}
-        onClick={() => isAdmin && setSelectedItemId(it._id)}
-      >
-        {it.meta?.name || it.meta?.label || "Object"}
-      </div>
-    );
-  }
+  return (
+    <div
+      key={it._id}
+      className={`seat-abs block-item ${selectedItemId === it._id ? "admin-selected" : ""}`}
+      style={{
+        left: it.pos.left,
+        top: it.pos.top,
+        cursor: isAdmin ? "grab" : "default"
+      }}
+      onMouseDown={(e) => {
+        if (!isAdmin) return;
+
+        e.stopPropagation();
+        setSelectedItemId(it._id);
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startLeft = it.pos.left;
+        const startTop = it.pos.top;
+
+        const grid = 10; // snap ทุก 10px
+        const frame = document.querySelector(".map-frame");
+
+        let latestPos = { left: startLeft, top: startTop };
+
+        const handleMouseMove = (moveEvent) => {
+          const dx = moveEvent.clientX - startX;
+          const dy = moveEvent.clientY - startY;
+
+          let newLeft = startLeft + dx;
+          let newTop = startTop + dy;
+
+          /* ===== Clamp ไม่ให้ออกนอกกรอบ ===== */
+          if (frame) {
+            const maxX = frame.offsetWidth - 60;
+            const maxY = frame.offsetHeight - 60;
+
+            newLeft = Math.max(0, Math.min(maxX, newLeft));
+            newTop = Math.max(0, Math.min(maxY, newTop));
+          }
+
+          /* ===== Snap ===== */
+          newLeft = Math.round(newLeft / grid) * grid;
+          newTop = Math.round(newTop / grid) * grid;
+
+          latestPos = { left: newLeft, top: newTop };
+
+          setItems(prev =>
+            prev.map(item =>
+              item._id === it._id
+                ? { ...item, pos: latestPos }
+                : item
+            )
+          );
+        };
+
+        const handleMouseUp = async () => {
+          document.removeEventListener("mousemove", handleMouseMove);
+          document.removeEventListener("mouseup", handleMouseUp);
+
+          try {
+            await fetch(`/api/seatmap/items/${it._id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "x-role": localStorage.getItem("role"),
+              },
+              body: JSON.stringify({ pos: latestPos }),
+            });
+          } catch (err) {
+            console.error("Save position error:", err);
+          }
+        };
+
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
+      }}
+    >
+      {it.meta?.name || it.meta?.label || "Object"}
+    </div>
+  );
+}
+
 
   // ✅ seat ปกติ: กดได้ (user) / เลือกแก้ไขได้ (admin)
   const isTaken = takenSeats.has(it.seatId);
@@ -340,24 +480,32 @@ const handleDeleteSelected = async () => {
 
   return (
     <button
-      key={it._id}
-      className={[
-        "seat",
-        "seat-abs",
-        it.zone === "B" ? "seat-b" : "",
-        it.size === "tiny" ? "seat-tiny" : "",
-        isTaken ? "taken" : "",
-        isSelected ? "selected" : "",
-        selectedItemId === it._id ? "admin-selected" : "",
-        it.zone ? `zone-${it.zone}` : "",
-      ].join(" ")}
-      style={{ left: it.pos.left, top: it.pos.top }}
-      onClick={() => {
-        if (isAdmin) setSelectedItemId(it._id);
-        else handlePick(it.seatId);
-      }}
-      disabled={!isAdmin && isTaken}
-    >
+  key={it._id}
+  className={[
+    "seat",
+    "seat-abs",
+    it.zone === "B" ? "seat-b" : "",
+    it.size === "tiny" ? "seat-tiny" : "",
+    isTaken ? "taken" : "",
+    isSelected ? "selected" : "",
+    selectedItemId === it._id ? "admin-selected" : "",
+    it.zone ? `zone-${it.zone}` : "",
+  ].join(" ")}
+  style={{
+    left: it.pos.left,
+    top: it.pos.top,
+    cursor: isAdmin ? "grab" : "pointer"
+  }}
+  onMouseDown={(e) => {
+    if (isAdmin) startDrag(e, it);
+  }}
+  onClick={() => {
+    if (isAdmin) setSelectedItemId(it._id);
+    else handlePick(it.seatId);
+  }}
+  disabled={!isAdmin && isTaken}
+>
+
       {it.meta?.name?.trim() ? it.meta.name : it.seatId}
     </button>
   );

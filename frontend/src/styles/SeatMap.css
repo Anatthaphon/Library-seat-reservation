@@ -444,3 +444,8 @@
   padding: 2px;
   text-align: center;
 }
+
+.block-item:active {
+  cursor: grabbing;
+  opacity: 0.8;
+}
