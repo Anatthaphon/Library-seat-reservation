@@ -68,27 +68,30 @@
   background-color: #2e7d32;
   color: white;
   border: none;
-  padding: 10px 22px;
+  padding: 10px 18px; /* ปรับ padding ให้พอดีกับข้อความ */
   border-radius: 6px;
   font-weight: 600;
-  cursor: pointer; /* ✅ ปุ่มกดปกติเป็นรูปมือ */
+  cursor: pointer;
   transition: all 0.2s;
-  font-size: 14px;
+  font-size: 15px; /* เพิ่มขนาดตัวอักษรเล็กน้อย */
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* เว้นระยะห่างระหว่างลูกศรกับตัวอักษร */
 }
 
+/* เอฟเฟกต์เมื่อวางเมาส์ */
 .week-nav button:hover {
   background-color: #1b5e20;
   transform: translateY(-1px);
 }
 
-/* ใส่ข้อความในปุ่ม */
-.week-nav button:first-of-type::before { content: "← Previous Week"; }
-.week-nav button:last-of-type::after { content: "Next Week →"; }
-
+/* ส่วนวันที่ตรงกลาง */
 .week-nav span {
   font-weight: 700;
   color: #333;
-  font-size: 18px;
+  font-size: 20px; /* เพิ่มขนาดให้เด่นขึ้น */
 }
 
 /* --- หัวตารางแสดงวัน (Mon-Sun) --- */
