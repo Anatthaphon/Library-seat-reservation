@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { Server } = require("socket.io");
 
 dotenv.config();
 
@@ -38,6 +39,14 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+/* socket */
+const io = new Server(server, {
+  cors:{ origin:"*" }
+});
+
+/* IMPORTANT */
+app.set("io", io);

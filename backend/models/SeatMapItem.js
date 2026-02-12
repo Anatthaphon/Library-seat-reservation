@@ -11,16 +11,24 @@ const SeatMapItemSchema = new mongoose.Schema(
       index: true,
     },
 
-    seatId: { type: String, default: null, index: true },
-    zone: { type: String, default: null }, 
-    size: { type: String, default: "normal" }, // normal | tiny | fixed
+
+    zone: { type: String, default: null },
+    size: { type: String, default: "normal" },
 
     pos: {
       left: { type: Number, required: true },
       top: { type: Number, required: true },
     },
 
-    meta: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // ✅ บังคับ meta structure
+    meta: {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+    },
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

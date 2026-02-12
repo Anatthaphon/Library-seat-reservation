@@ -75,6 +75,9 @@ exports.deleteSchedule = async (req, res) => {
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
+    /* realtime */
+    req.app.get("io").emit("schedule-updated");
+
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -141,3 +144,37 @@ exports.getSchedulesByInstructor = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.createBulkSchedules = async (req, res) => {
+  try {
+    const { bookings } = req.body;
+
+    if (!Array.isArray(bookings)) {
+      return res.status(400).json({ error: "bookings must be array" });
+    }
+
+    const docs = bookings.map(b => ({
+      title: b.subject || "Seat Reservation",
+      date: new Date(b.date),
+      dayOfWeek: new Date(b.date).getDay(),
+      timeSlot: {
+        startTime: String(b.startTime),
+        endTime: String(b.endTime)
+      },
+      duration: b.endTime - b.startTime,
+      room: String(b.seatItemId),
+      type: "other"
+    }));
+
+    const created = await Schedule.insertMany(docs);
+
+     /* ================= REALTIME EMIT ================= */
+    req.app.get("io").emit("schedule-updated", created);
+    /* ================================================ */
+
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+

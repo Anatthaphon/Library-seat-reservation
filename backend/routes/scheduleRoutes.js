@@ -17,6 +17,9 @@ router.get('/instructor/:instructorId', scheduleController.getSchedulesByInstruc
 // Get schedule by ID (ต้องไว้ท้าย ๆ)
 router.get('/:id', scheduleController.getScheduleById);
 
+router.post('/bulk', scheduleController.createBulkSchedules);
+
+
 // Create new schedule/event
 router.post('/', scheduleController.createSchedule);
 
