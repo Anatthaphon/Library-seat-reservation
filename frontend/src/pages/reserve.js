@@ -189,7 +189,38 @@ export default function Reserve() {
                         key={b.id}
                         booking={b}
                         past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
-                        onShowDetails={(booking) => { setSelectedBooking(booking); setShowViewPopup(true); }}
+                        onShowDetails={(booking) => {
+                          // 1. สร้างตัวแปรเช็คเงื่อนไขเวลา (logic เดียวกับ isSlotDisabled)
+                          const now = new Date();
+                          const bookingDate = new Date(booking.date);
+                          const bookingHour = parseInt(booking.startTime);
+                          const isToday = bookingDate.toDateString() === now.toDateString();
+
+                          let canManage = true;
+
+                          // ถ้าเป็นวันในอดีต ลบไม่ได้แน่นอน
+                          if (bookingDate < today) {
+                            canManage = false;
+                          } 
+                          // ถ้าเป็นวันนี้ ต้องเช็คชั่วโมงและนาที (ไม่เกิน 10 นาที)
+                          else if (isToday) {
+                            if (bookingHour < now.getHours()) {
+                              canManage = false;
+                            } else if (bookingHour === now.getHours() && now.getMinutes() > 10) {
+                              canManage = false;
+                            }
+                          }
+
+                          // 2. ถ้า canManage เป็น false ให้ Alert บอกผู้ใช้ หรือไม่ยอมให้เปิด Popup
+                          if (!canManage) {
+                            alert("ไม่สามารถจัดการการจองที่ผ่านไปแล้วได้ (ยกเลิกได้ภายใน 10 นาทีแรกของชั่วโมงที่เริ่มจองเท่านั้น)");
+                            return; 
+                          }
+
+                          // ถ้าผ่านเงื่อนไข ค่อยเปิด Popup
+                          setSelectedBooking(booking);
+                          setShowViewPopup(true);
+                        }}
                       />
                     ))}
                   </div>
