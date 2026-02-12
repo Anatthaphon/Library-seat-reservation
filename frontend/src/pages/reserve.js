@@ -10,7 +10,7 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const MAX_CANCEL_PER_MONTH = 3; 
+  const MAX_CANCEL_PER_MONTH = 100; 
 
   const [bookings, setBookings] = useState(() => {
     const saved = localStorage.getItem("bookings");
@@ -42,31 +42,31 @@ export default function Reserve() {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
   }, [cancelHistory]);
 
-  useEffect(() => {
-    if (location.state?.booking) {
-      const incoming = location.state.booking;
-      if (!incoming.id) {
-        const formatToHourNumber = (t) => {
-          if (typeof t === 'number') return t;
-          return parseInt(String(t).split(':')[0], 10);
-        };
-        const newBooking = {
-          ...incoming,
-          id: Date.now() + Math.random(),
-          startTime: formatToHourNumber(incoming.startTime), 
-          endTime: formatToHourNumber(incoming.endTime),
-          date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
-        };
-        setBookings(prev => {
-          const isDuplicate = prev.some(b => 
-            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatId === newBooking.seatId
-          );
-          return isDuplicate ? prev : [...prev, newBooking];
-        });
+    useEffect(() => {
+      if (location.state?.booking) {
+        const incoming = location.state.booking;
+
+        if (incoming.seatId && !incoming.confirmedFromPopup) {
+          setDraft({
+            ...incoming,
+            date: new Date(incoming.date), // แปลง format วันที่
+            startTime: parseInt(incoming.startTime),
+            endTime: parseInt(incoming.endTime)
+          });
+        } 
+        // กรณีที่กดยืนยันจากใน Popup มาแล้ว (มี flag confirmedFromPopup) ค่อยสั่งบันทึกจริง
+        else if (incoming.confirmedFromPopup && !incoming.id) {
+          const newBooking = {
+            ...incoming,
+            id: Date.now() + Math.random(),
+          };
+          setBookings(prev => [...prev, newBooking]);
+        }
+
+        // ล้าง state เพื่อไม่ให้เปิดซ้ำเมื่อ Refresh
+        window.history.replaceState({}, document.title);
       }
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+    }, [location.state]);
 
   const cancelCountThisMonth = useMemo(() => {
     const now = new Date();
@@ -135,11 +135,21 @@ export default function Reserve() {
       </div>
 
       <div className="calendar-scroll">
-        <div className="week-nav">
-          <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
-          <span>{days[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}</span>
-          <button onClick={() => setWeekOffset((w) => w + 1)}>›</button>
-        </div>
+              <div className="week-nav">
+        {/* ปุ่มย้อนกลับ */}
+        <button onClick={() => setWeekOffset((w) => w - 1)}>
+          ← Previous Week
+        </button>
+
+        <span>
+          {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+        </span>
+
+        {/* ปุ่มถัดไป */}
+        <button onClick={() => setWeekOffset((w) => w + 1)}>
+          Next Week →
+        </button>
+      </div>
 
         <div className="calendar-header">
           <div className="time-col" />
