@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/SeatMap.css";
+import { socket } from "../socket";
 
 export default function SeatMap() {
   const location = useLocation();
@@ -20,6 +21,7 @@ export default function SeatMap() {
 const [items, setItems] = useState([]);
 const [loading, setLoading] = useState(true);
 const [selectedItemId, setSelectedItemId] = useState(null);
+const [takenSeats, setTakenSeats] = useState(new Set());
 
 
 useEffect(() => {
@@ -39,10 +41,50 @@ useEffect(() => {
   load();
 }, []);
 
+useEffect(() => {
 
-  const takenSeats = useMemo(() => new Set(), []);
+  const loadBookedSeats = async () => {
+    try {
+      const res = await fetch("/api/schedules");
+      const data = await res.json();
+
+      const bookedIds = new Set(data.map(s => s.room));
+      setTakenSeats(bookedIds);
+    } catch (err) {
+      console.error("loadBookedSeats error", err);
+    }
+  };
+
+  // โหลดครั้งแรก
+  loadBookedSeats();
+
+  // realtime update
+  socket.on("schedule-updated", loadBookedSeats);
+
+  return () => {
+    socket.off("schedule-updated", loadBookedSeats);
+  };
+
+}, []);
+
+
+  
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [addName, setAddName] = useState("");
+
+  const selectedSeatName = useMemo(() => {
+  const found = items.find(i => i._id === selectedSeat);
+  return found?.meta?.name || null;
+}, [selectedSeat, items]);
+
+const selectedAdminName = useMemo(()=>{
+ const f = items.find(i=>i._id===selectedItemId)
+ return f?.meta?.name
+},[selectedItemId,items])
+
+if (loading) {
+  return <div>Loading...</div>;
+}
 
   // ===== กันเข้าหน้านี้แบบไม่มี state =====
   if (!state) {
@@ -57,6 +99,13 @@ useEffect(() => {
     );
   }
   const handleAddSeat = async (kind, name) => {
+    if (!name || !name.trim()) {
+    alert("กรุณากรอกชื่อโต๊ะก่อนเพิ่ม");
+    return;
+  }
+
+  
+
   // kind: "A" | "B" | "C" | "deco"
   const isDeco = kind === "deco";
   
@@ -65,13 +114,11 @@ useEffect(() => {
   const payload = {
     mapId: "main",
     type: isDeco ? "block" : "seat",        // ✅ deco เป็น block (กดไม่ได้)
-    seatId: isDeco ? null : `NEW${Date.now()}`,
     zone: isDeco ? null : kind,            // ✅ A/B/C
     size: "normal",
     pos: { left: 120, top: 120 },
     meta: {
-      name: name?.trim() || (isDeco ? "Object" : ""),
-      ...(isDeco ? { label: "Object" } : {}),
+      name: name.trim(), // 👈 บังคับชื่อ
     },
     isActive: true,
   };
@@ -120,17 +167,21 @@ const handleDeleteSelected = async () => {
 };
 
 
-  const handlePick = (seatId) => {
-    if (takenSeats.has(seatId)) return;
-    setSelectedSeat(seatId);
-  };
+
+
+  const handlePick = (itemId) => {
+  if (takenSeats.has(itemId)) return;
+  setSelectedSeat(itemId);
+};
+
+
 
   const handleConfirm = () => {
     if (!selectedSeat) {
       alert("กรุณาเลือกที่นั่งก่อนค่ะ");
       return;
     }
-
+    const seat = items.find(i => i._id === selectedSeat);
     navigate(returnTo, {
       replace: true,
       state: {
@@ -138,7 +189,8 @@ const handleDeleteSelected = async () => {
           date: state.date,
           startTime: state.startTime,
           endTime: state.endTime,
-          seatId: selectedSeat,
+          seatItemId: selectedSeat,
+          seatName: seat?.meta?.name || "Seat",
           subject: state.subject || "",
         },
       },
@@ -211,7 +263,7 @@ const startDrag = (e, it) => {
 
     try {
       await fetch(`/api/seatmap/items/${it._id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "x-role": localStorage.getItem("role"),
@@ -281,7 +333,7 @@ const startDrag = (e, it) => {
       <button className="admin-btn danger" onClick={handleDeleteSelected}>Delete Selected</button>
 
       <div className="admin-hint">
-        Selected item: <b>{selectedItemId || "-"}</b>
+        Selected item: <b>{selectedAdminName || "-"}</b>
       </div>
     </div>
   )}
@@ -399,74 +451,7 @@ const startDrag = (e, it) => {
         top: it.pos.top,
         cursor: isAdmin ? "grab" : "default"
       }}
-      onMouseDown={(e) => {
-        if (!isAdmin) return;
-
-        e.stopPropagation();
-        setSelectedItemId(it._id);
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const startLeft = it.pos.left;
-        const startTop = it.pos.top;
-
-        const grid = 10; // snap ทุก 10px
-        const frame = document.querySelector(".map-frame");
-
-        let latestPos = { left: startLeft, top: startTop };
-
-        const handleMouseMove = (moveEvent) => {
-          const dx = moveEvent.clientX - startX;
-          const dy = moveEvent.clientY - startY;
-
-          let newLeft = startLeft + dx;
-          let newTop = startTop + dy;
-
-          /* ===== Clamp ไม่ให้ออกนอกกรอบ ===== */
-          if (frame) {
-            const maxX = frame.offsetWidth - 60;
-            const maxY = frame.offsetHeight - 60;
-
-            newLeft = Math.max(0, Math.min(maxX, newLeft));
-            newTop = Math.max(0, Math.min(maxY, newTop));
-          }
-
-          /* ===== Snap ===== */
-          newLeft = Math.round(newLeft / grid) * grid;
-          newTop = Math.round(newTop / grid) * grid;
-
-          latestPos = { left: newLeft, top: newTop };
-
-          setItems(prev =>
-            prev.map(item =>
-              item._id === it._id
-                ? { ...item, pos: latestPos }
-                : item
-            )
-          );
-        };
-
-        const handleMouseUp = async () => {
-          document.removeEventListener("mousemove", handleMouseMove);
-          document.removeEventListener("mouseup", handleMouseUp);
-
-          try {
-            await fetch(`/api/seatmap/items/${it._id}`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "x-role": localStorage.getItem("role"),
-              },
-              body: JSON.stringify({ pos: latestPos }),
-            });
-          } catch (err) {
-            console.error("Save position error:", err);
-          }
-        };
-
-        document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseup", handleMouseUp);
-      }}
+      onMouseDown={(e) => startDrag(e, it)}
     >
       {it.meta?.name || it.meta?.label || "Object"}
     </div>
@@ -474,9 +459,11 @@ const startDrag = (e, it) => {
 }
 
 
-  // ✅ seat ปกติ: กดได้ (user) / เลือกแก้ไขได้ (admin)
-  const isTaken = takenSeats.has(it.seatId);
-  const isSelected = selectedSeat === it.seatId;
+
+  
+  const isTaken = takenSeats.has(it._id);
+  const isSelected = selectedSeat === it._id;
+
 
   return (
     <button
@@ -501,12 +488,12 @@ const startDrag = (e, it) => {
   }}
   onClick={() => {
     if (isAdmin) setSelectedItemId(it._id);
-    else handlePick(it.seatId);
+    else handlePick(it._id);
   }}
   disabled={!isAdmin && isTaken}
 >
 
-      {it.meta?.name?.trim() ? it.meta.name : it.seatId}
+      {it.meta?.name}
     </button>
   );
 })}
@@ -517,7 +504,7 @@ const startDrag = (e, it) => {
 
       <div className="seatmap-footer">
         <div className="selected-info">
-          Selected: <b>{selectedSeat || "-"}</b>
+          Selected: <b>{selectedSeatName || "-"}</b>
         </div>
 
         <button className="confirm-btn" onClick={handleConfirm}>

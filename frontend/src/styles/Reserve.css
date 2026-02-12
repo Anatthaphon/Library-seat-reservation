@@ -172,7 +172,6 @@
   width: 92%;
   height: 85%;
   margin: auto;
-  background: #81c784; /* ✅ สีเขียวอ่อนตามต้นแบบ */
   color: #1b5e20;
   border-radius: 6px;
   display: flex;
@@ -180,7 +179,6 @@
   justify-content: center;
   font-weight: 800;
   font-size: 13px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   cursor: pointer;
 }
 
@@ -196,3 +194,14 @@
   display: block;            
   border-top: 1px dashed #ffccc7; 
 }
+
+.booking-block.draft::after {
+  content: "DRAFT";
+  font-size: 10px;
+  font-weight: bold;
+  color: #d35400;
+  position: absolute;
+  top: 4px;
+  right: 6px;
+}
+
