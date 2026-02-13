@@ -149,32 +149,43 @@ exports.createBulkSchedules = async (req, res) => {
   try {
     const { bookings } = req.body;
 
-    if (!Array.isArray(bookings)) {
-      return res.status(400).json({ error: "bookings must be array" });
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+      return res.status(400).json({ error: "bookings must be non-empty array" });
     }
 
-    const docs = bookings.map(b => ({
-      title: b.subject || "Seat Reservation",
-      date: new Date(b.date),
-      dayOfWeek: new Date(b.date).getDay(),
-      timeSlot: {
-        startTime: String(b.startTime),
-        endTime: String(b.endTime)
-      },
-      duration: b.endTime - b.startTime,
-      room: String(b.seatItemId),
-      type: "other"
-    }));
+    const docs = bookings.map(b => {
+      if (!b.date || !b.startTime || !b.endTime)
+        throw new Error("Missing required booking fields");
+
+      const roomId = b.seatItemId || b.seatId;
+      if (!roomId)
+        throw new Error("Seat ID missing");
+
+      return {
+        title: b.subject || "Seat Reservation",
+        date: new Date(b.date),
+        dayOfWeek: new Date(b.date).getDay(),
+        timeSlot: {
+          startTime: String(b.startTime),
+          endTime: String(b.endTime)
+        },
+        duration: Number(b.endTime) - Number(b.startTime),
+        room: String(roomId),
+        status: "booked",
+        type: "other"
+      };
+    });
 
     const created = await Schedule.insertMany(docs);
 
-     /* ================= REALTIME EMIT ================= */
     req.app.get("io").emit("schedule-updated", created);
-    /* ================================================ */
 
     res.status(201).json(created);
+
   } catch (err) {
+    console.error("BULK CREATE ERROR:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
+
 

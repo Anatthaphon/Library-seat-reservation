@@ -8,45 +8,45 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/seat_reservation', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// mongo
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/seat_reservation')
 .then(() => console.log('MongoDB Connected Successfully'))
 .catch(err => console.log('MongoDB Connection Error:', err));
 
-const scheduleRoutes = require('./routes/scheduleRoutes');
+app.get('/', (req,res)=>{
+  res.json({message:"Seat Reservation API running"});
+});
 
+// start server
+const PORT = process.env.PORT || 3001;
+const server = app.listen(PORT, ()=>{
+  console.log(`Server running on port ${PORT}`);
+});
+
+// socket
+const io = new Server(server,{
+  cors:{origin:"*"}
+});
+
+app.set("io",io);
+
+
+// ===== routes ต้องอยู่หลัง set io =====
+
+const scheduleRoutes = require('./routes/scheduleRoutes');
 app.use('/api/schedules', scheduleRoutes);
 
 const seatMapRoutes = require("./routes/seatMapRoutes");
 app.use("/api/seatmap", seatMapRoutes);
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Seat Reservation API is running' });
-});
 
-// Error Handling Middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// error handler
+app.use((err,req,res,next)=>{
+  console.error("SERVER ERROR:",err);
+  res.status(500).json({error:err.message});
 });
-
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-/* socket */
-const io = new Server(server, {
-  cors:{ origin:"*" }
-});
-
-/* IMPORTANT */
-app.set("io", io);
