@@ -20,7 +20,6 @@ export default function ViewBookingPopup({ booking, onClose, onDelete }) {
 
   return (
     <div className="event-popup-overlay">
-      <div className="event-header-label">Booking Details</div>
       <div className="event-popup">
         
         <div className="form-row space-between">
