@@ -61,11 +61,16 @@ const scheduleSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  status: {
-    type: String,
-    enum: ['scheduled', 'ongoing', 'completed', 'cancelled'],
-    default: 'scheduled'
-  },
+  status:{
+ type:String,
+ enum:[
+   "booked",
+   "checkedin",
+   "completed",
+   "cancelled"
+ ],
+ default:"booked"
+},
   // For recurring events
   isRecurring: {
     type: Boolean,

@@ -10,7 +10,7 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const MAX_CANCEL_PER_MONTH = 3; 
+  const MAX_CANCEL_PER_MONTH = 100; 
 
   const [bookings, setBookings] = useState(() => {
     const saved = localStorage.getItem("bookings");
@@ -57,9 +57,9 @@ export default function Reserve() {
           endTime: formatToHourNumber(incoming.endTime),
           date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
         };
-        setBookings(prev => {
+        setDraftBookings(prev => {
           const isDuplicate = prev.some(b => 
-            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatId === newBooking.seatId
+            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatItemId === newBooking.seatItemId
           );
           return isDuplicate ? prev : [...prev, newBooking];
         });
@@ -100,6 +100,18 @@ export default function Reserve() {
     });
   }, [today, weekOffset]);
 
+  const [draftBookings, setDraftBookings] = useState(() => {
+  const saved = localStorage.getItem("draftBookings");
+  return saved ? JSON.parse(saved) : [];
+});
+
+
+
+  useEffect(() => {
+  localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
+}, [draftBookings]);
+
+
   // ✅ แก้ไข: แสดงแถวแค่ 9:00 - 17:00 (แถวสุดท้ายคือ 17:00-18:00)
   const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
 
@@ -121,6 +133,37 @@ export default function Reserve() {
     setShowCancelPopup(false);
     setSelectedBooking(null);
   };
+
+  const handleSubmitAll = async () => {
+  try {
+    const res = await fetch("/api/schedules/bulk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ bookings: draftBookings })
+    });
+
+    if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
+
+    // ย้าย draft ไป bookings จริง
+    setBookings(prev => [...prev, ...draftBookings]);
+
+    // ล้าง draft
+    setDraftBookings([]);
+    localStorage.removeItem("draftBookings");
+
+    alert("จองสำเร็จทั้งหมดแล้ว");
+  } catch (err) {
+    console.error(err);
+    alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+  }
+};
+const handleDeleteDraft = (id) => {
+  setDraftBookings(prev => prev.filter(b => b.id !== id));
+};
+
+
 
   return (
     <div className="reserve-page">
@@ -156,12 +199,13 @@ export default function Reserve() {
             <div className="hour-row" key={hour}>
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
+                const allCalendarBookings = [...bookings, ...draftBookings];
                 const disabled = isSlotDisabled(day, hour);
-                const isAlreadyBooked = bookings.some(b => {
+                const isAlreadyBooked = allCalendarBookings.some(b => {
                   const bDate = new Date(b.date).toDateString();
                   return bDate === day.toDateString() && hour >= parseInt(b.startTime) && hour < parseInt(b.endTime);
                 });
-                const startingBookings = bookings.filter(b => 
+                const startingBookings = allCalendarBookings.filter(b =>
                   new Date(b.date).toDateString() === day.toDateString() && parseInt(b.startTime) === hour
                 );
 
@@ -174,14 +218,29 @@ export default function Reserve() {
                       setDraft({ date: day, startTime: hour, endTime: hour + 1, seatId: null, subject: "" });
                     }}
                   >
-                    {startingBookings.map((b) => (
-                      <BookingBlock
-                        key={b.id}
-                        booking={b}
-                        past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
-                        onShowDetails={(booking) => { setSelectedBooking(booking); setShowViewPopup(true); }}
-                      />
-                    ))}
+                    {startingBookings.map((b) => {
+                      const isDraft = draftBookings.some(d => d.id === b.id);
+
+                      return (
+                        <BookingBlock
+                          key={b.id}
+                          booking={b}
+                          isDraft={isDraft}
+                          past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
+                          onShowDetails={(booking) => {
+                            if (isDraft) {
+                              if (window.confirm("ลบ Draft นี้หรือไม่?")) {
+                                handleDeleteDraft(booking.id);
+                              }
+                            } else {
+                              setSelectedBooking(booking);
+                              setShowViewPopup(true);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+
                   </div>
                 );
               })}
@@ -189,23 +248,61 @@ export default function Reserve() {
           ))}
         </div>
       </div>
+      
+      {draftBookings.length > 0 && (
+  <div style={{ marginTop: 20, textAlign: "center" }}>
+    <button
+      className="confirm-btn"
+      onClick={handleSubmitAll}
+    >
+      Confirm All Reservations ({draftBookings.length})
+    </button>
+  </div>
+)}
+      
 
       <div className="cancel-policy-notice">
         * การยกเลิกการจองสามารถทำได้สูงสุด 3 ครั้งต่อเดือนเท่านั้น
       </div>
 
+      
+
       {draft && (
-        <ReservePopup
-          data={draft}
-          allBookings={bookings}
-          onClose={() => setDraft(null)}
-          onAccept={(final) => {
-            setBookings(prev => [...prev, { ...final, date: final.date.toISOString(), id: Date.now() + Math.random() }]);
-            setDraft(null);
-          }}
-          onSelectSeat={(curr) => navigate("/seatmap", { state: { ...curr, date: curr.date.toISOString(), returnTo: "/reserve" } })}
-        />
-      )}
+  <ReservePopup
+    data={draft}
+    allBookings={bookings}
+    onClose={() => setDraft(null)}
+    onAccept={(final) => {
+      const newDraft = {
+        ...final,
+        date: final.date.toISOString(),
+        id: Date.now() + Math.random()
+      };
+
+      setDraftBookings(prev => {
+        const isDuplicate = prev.some(b =>
+          b.date === newDraft.date &&
+          b.startTime === newDraft.startTime &&
+          b.seatItemId === newDraft.seatItemId
+        );
+
+        return isDuplicate ? prev : [...prev, newDraft];
+      });
+
+      setDraft(null);
+    }}
+    onSelectSeat={(curr) =>
+      navigate("/seatmap", {
+        state: {
+          ...curr,
+          date: curr.date.toISOString(),
+          returnTo: "/reserve"
+        }
+      })
+    }
+  />
+)}
+
 
       {showViewPopup && (
         <ViewBookingPopup

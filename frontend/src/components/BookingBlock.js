@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "../styles/BookingBlock.css";
 
 // เปลี่ยน Prop จาก onRequestDelete เป็น onShowDetails ตามที่ Reserve.js ส่งมา
-export default function BookingBlock({ booking, onShowDetails, past }) {
+export default function BookingBlock({ booking, past, onShowDetails, isDraft }) {
   const [hover, setHover] = useState(false);
 
   const getColorByDay = (dateStr) => {
@@ -41,6 +41,10 @@ export default function BookingBlock({ booking, onShowDetails, past }) {
         }
       }}
     >
+
+      {/* ✅ BADGE */}
+        {isDraft && <div className="draft-badge">DRAFT</div>}
+
       <div
         className="card-header-bar"
         style={{ backgroundColor: themeColor }}
@@ -52,7 +56,9 @@ export default function BookingBlock({ booking, onShowDetails, past }) {
 
       <div className="card-body-content">
         <span className="seat-number-text">
-          Seat {booking.seatId}
+          {booking.seatName || "Seat"}
+
+
         </span>
 
         {/* ❌ เอาปุ่มปุ่มลบ (กากบาท) เดิมออกถาวร */}

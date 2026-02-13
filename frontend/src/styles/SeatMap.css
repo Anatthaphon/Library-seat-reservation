@@ -449,3 +449,24 @@
   cursor: grabbing;
   opacity: 0.8;
 }
+
+
+.seat.taken{
+  background:#fde68a;
+  border-color:#f59e0b;
+}
+
+
+.seat-available {
+  background-color: #22c55e !important; /* เขียว */
+  color: white;
+}
+.seat-booked{
+  background:#facc15 !important;
+  color:#000;
+}
+
+.seat-checkedin{
+  background:#ef4444 !important;
+  color:white;
+}
