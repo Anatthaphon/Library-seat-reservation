@@ -42,31 +42,31 @@ export default function Reserve() {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
   }, [cancelHistory]);
 
-    useEffect(() => {
-      if (location.state?.booking) {
-        const incoming = location.state.booking;
-
-        if (incoming.seatId && !incoming.confirmedFromPopup) {
-          setDraft({
-            ...incoming,
-            date: new Date(incoming.date), // แปลง format วันที่
-            startTime: parseInt(incoming.startTime),
-            endTime: parseInt(incoming.endTime)
-          });
-        } 
-        // กรณีที่กดยืนยันจากใน Popup มาแล้ว (มี flag confirmedFromPopup) ค่อยสั่งบันทึกจริง
-        else if (incoming.confirmedFromPopup && !incoming.id) {
-          const newBooking = {
-            ...incoming,
-            id: Date.now() + Math.random(),
-          };
-          setBookings(prev => [...prev, newBooking]);
-        }
-
-        // ล้าง state เพื่อไม่ให้เปิดซ้ำเมื่อ Refresh
-        window.history.replaceState({}, document.title);
+  useEffect(() => {
+    if (location.state?.booking) {
+      const incoming = location.state.booking;
+      if (!incoming.id) {
+        const formatToHourNumber = (t) => {
+          if (typeof t === 'number') return t;
+          return parseInt(String(t).split(':')[0], 10);
+        };
+        const newBooking = {
+          ...incoming,
+          id: Date.now() + Math.random(),
+          startTime: formatToHourNumber(incoming.startTime), 
+          endTime: formatToHourNumber(incoming.endTime),
+          date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
+        };
+        setDraftBookings(prev => {
+          const isDuplicate = prev.some(b => 
+            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatItemId === newBooking.seatItemId
+          );
+          return isDuplicate ? prev : [...prev, newBooking];
+        });
       }
-    }, [location.state]);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const cancelCountThisMonth = useMemo(() => {
     const now = new Date();
@@ -100,6 +100,18 @@ export default function Reserve() {
     });
   }, [today, weekOffset]);
 
+  const [draftBookings, setDraftBookings] = useState(() => {
+  const saved = localStorage.getItem("draftBookings");
+  return saved ? JSON.parse(saved) : [];
+});
+
+
+
+  useEffect(() => {
+  localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
+}, [draftBookings]);
+
+
   // ✅ แก้ไข: แสดงแถวแค่ 9:00 - 17:00 (แถวสุดท้ายคือ 17:00-18:00)
   const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
 
@@ -122,6 +134,37 @@ export default function Reserve() {
     setSelectedBooking(null);
   };
 
+  const handleSubmitAll = async () => {
+  try {
+    const res = await fetch("/api/schedules/bulk", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ bookings: draftBookings })
+    });
+
+    if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
+
+    // ย้าย draft ไป bookings จริง
+    setBookings(prev => [...prev, ...draftBookings]);
+
+    // ล้าง draft
+    setDraftBookings([]);
+    localStorage.removeItem("draftBookings");
+
+    alert("จองสำเร็จทั้งหมดแล้ว");
+  } catch (err) {
+    console.error(err);
+    alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+  }
+};
+const handleDeleteDraft = (id) => {
+  setDraftBookings(prev => prev.filter(b => b.id !== id));
+};
+
+
+
   return (
     <div className="reserve-page">
       <div className="reserve-header">
@@ -135,21 +178,11 @@ export default function Reserve() {
       </div>
 
       <div className="calendar-scroll">
-              <div className="week-nav">
-        {/* ปุ่มย้อนกลับ */}
-        <button onClick={() => setWeekOffset((w) => w - 1)}>
-          ← Previous Week
-        </button>
-
-        <span>
-          {days[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
-        </span>
-
-        {/* ปุ่มถัดไป */}
-        <button onClick={() => setWeekOffset((w) => w + 1)}>
-          Next Week →
-        </button>
-      </div>
+        <div className="week-nav">
+          <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
+          <span>{days[0].toLocaleDateString("en-GB", { day: "numeric", month: "long" })} – {days[6].toLocaleDateString("en-GB", { day: "numeric", month: "long" })}</span>
+          <button onClick={() => setWeekOffset((w) => w + 1)}>›</button>
+        </div>
 
         <div className="calendar-header">
           <div className="time-col" />
@@ -166,12 +199,13 @@ export default function Reserve() {
             <div className="hour-row" key={hour}>
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
+                const allCalendarBookings = [...bookings, ...draftBookings];
                 const disabled = isSlotDisabled(day, hour);
-                const isAlreadyBooked = bookings.some(b => {
+                const isAlreadyBooked = allCalendarBookings.some(b => {
                   const bDate = new Date(b.date).toDateString();
                   return bDate === day.toDateString() && hour >= parseInt(b.startTime) && hour < parseInt(b.endTime);
                 });
-                const startingBookings = bookings.filter(b => 
+                const startingBookings = allCalendarBookings.filter(b =>
                   new Date(b.date).toDateString() === day.toDateString() && parseInt(b.startTime) === hour
                 );
 
@@ -184,45 +218,29 @@ export default function Reserve() {
                       setDraft({ date: day, startTime: hour, endTime: hour + 1, seatId: null, subject: "" });
                     }}
                   >
-                    {startingBookings.map((b) => (
-                      <BookingBlock
-                        key={b.id}
-                        booking={b}
-                        past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
-                        onShowDetails={(booking) => {
-                          // 1. สร้างตัวแปรเช็คเงื่อนไขเวลา (logic เดียวกับ isSlotDisabled)
-                          const now = new Date();
-                          const bookingDate = new Date(booking.date);
-                          const bookingHour = parseInt(booking.startTime);
-                          const isToday = bookingDate.toDateString() === now.toDateString();
+                    {startingBookings.map((b) => {
+                      const isDraft = draftBookings.some(d => d.id === b.id);
 
-                          let canManage = true;
-
-                          // ถ้าเป็นวันในอดีต ลบไม่ได้แน่นอน
-                          if (bookingDate < today) {
-                            canManage = false;
-                          } 
-                          // ถ้าเป็นวันนี้ ต้องเช็คชั่วโมงและนาที (ไม่เกิน 10 นาที)
-                          else if (isToday) {
-                            if (bookingHour < now.getHours()) {
-                              canManage = false;
-                            } else if (bookingHour === now.getHours() && now.getMinutes() > 10) {
-                              canManage = false;
+                      return (
+                        <BookingBlock
+                          key={b.id}
+                          booking={b}
+                          isDraft={isDraft}
+                          past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
+                          onShowDetails={(booking) => {
+                            if (isDraft) {
+                              if (window.confirm("ลบ Draft นี้หรือไม่?")) {
+                                handleDeleteDraft(booking.id);
+                              }
+                            } else {
+                              setSelectedBooking(booking);
+                              setShowViewPopup(true);
                             }
-                          }
+                          }}
+                        />
+                      );
+                    })}
 
-                          // 2. ถ้า canManage เป็น false ให้ Alert บอกผู้ใช้ หรือไม่ยอมให้เปิด Popup
-                          if (!canManage) {
-                            alert("ไม่สามารถจัดการการจองที่ผ่านไปแล้วได้ (ยกเลิกได้ภายใน 10 นาทีแรกของชั่วโมงที่เริ่มจองเท่านั้น)");
-                            return; 
-                          }
-
-                          // ถ้าผ่านเงื่อนไข ค่อยเปิด Popup
-                          setSelectedBooking(booking);
-                          setShowViewPopup(true);
-                        }}
-                      />
-                    ))}
                   </div>
                 );
               })}
@@ -230,23 +248,61 @@ export default function Reserve() {
           ))}
         </div>
       </div>
+      
+      {draftBookings.length > 0 && (
+  <div style={{ marginTop: 20, textAlign: "center" }}>
+    <button
+      className="confirm-btn"
+      onClick={handleSubmitAll}
+    >
+      Confirm All Reservations ({draftBookings.length})
+    </button>
+  </div>
+)}
+      
 
       <div className="cancel-policy-notice">
         * การยกเลิกการจองสามารถทำได้สูงสุด 3 ครั้งต่อเดือนเท่านั้น
       </div>
 
+      
+
       {draft && (
-        <ReservePopup
-          data={draft}
-          allBookings={bookings}
-          onClose={() => setDraft(null)}
-          onAccept={(final) => {
-            setBookings(prev => [...prev, { ...final, date: final.date.toISOString(), id: Date.now() + Math.random() }]);
-            setDraft(null);
-          }}
-          onSelectSeat={(curr) => navigate("/seatmap", { state: { ...curr, date: curr.date.toISOString(), returnTo: "/reserve" } })}
-        />
-      )}
+  <ReservePopup
+    data={draft}
+    allBookings={bookings}
+    onClose={() => setDraft(null)}
+    onAccept={(final) => {
+      const newDraft = {
+        ...final,
+        date: final.date.toISOString(),
+        id: Date.now() + Math.random()
+      };
+
+      setDraftBookings(prev => {
+        const isDuplicate = prev.some(b =>
+          b.date === newDraft.date &&
+          b.startTime === newDraft.startTime &&
+          b.seatItemId === newDraft.seatItemId
+        );
+
+        return isDuplicate ? prev : [...prev, newDraft];
+      });
+
+      setDraft(null);
+    }}
+    onSelectSeat={(curr) =>
+      navigate("/seatmap", {
+        state: {
+          ...curr,
+          date: curr.date.toISOString(),
+          returnTo: "/reserve"
+        }
+      })
+    }
+  />
+)}
+
 
       {showViewPopup && (
         <ViewBookingPopup
