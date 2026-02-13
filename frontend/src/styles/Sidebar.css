@@ -73,3 +73,26 @@
   background-color: white;
   color: #2f5d3a;
 }
+
+/* หัว sidebar (กากบาท + switch role) */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* ปุ่ม switch role */
+.switch-role-btn {
+  background: white;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.switch-role-btn:hover {
+  opacity: 0.8;
+}

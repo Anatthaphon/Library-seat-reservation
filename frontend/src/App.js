@@ -8,6 +8,11 @@ import SeatMap from './pages/SeatMap';
 import Reserve from './pages/reserve';
 import Dashboard from './pages/dashboard';
 
+import AdminReservation from "./pages/AdminReservation";
+import StudentInfo from "./pages/StudentInfo";
+import EditSeatMap from "./pages/EditSeatMap";
+import SeatMapHistory from "./pages/SeatMapHistory";
+
 
 // Components
 import Navbar from './components/Navbar';
@@ -37,6 +42,12 @@ function App() {
 
             {/* Reservation */}
             <Route path="/reserve" element={<Reserve />} />
+
+            {/* Admin Pages */}
+            <Route path="/admin-reservation" element={<AdminReservation />} />
+            <Route path="/student-info" element={<StudentInfo />} />
+            <Route path="/edit-seatmap" element={<EditSeatMap />} />
+            <Route path="/seatmap-history" element={<SeatMapHistory />} />
           </Routes>
         </div>
       </div>
