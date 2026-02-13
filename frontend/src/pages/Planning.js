@@ -316,7 +316,7 @@ const Planning = () => {
         room: selectedEvent?.room || `Room ${Math.floor(Math.random() * 400) + 100}`,
         color: getColorByDay(eventDate),
         type: 'lecture',
-        status: 'scheduled',
+        status: 'booked',
       };
 
       if (selectedEvent) {

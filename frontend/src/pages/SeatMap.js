@@ -21,7 +21,7 @@ export default function SeatMap() {
 const [items, setItems] = useState([]);
 const [loading, setLoading] = useState(true);
 const [selectedItemId, setSelectedItemId] = useState(null);
-const [takenSeats, setTakenSeats] = useState(new Set());
+const [takenSeats, setTakenSeats] = useState(new Map());
 
 
 useEffect(() => {
@@ -41,6 +41,7 @@ useEffect(() => {
   load();
 }, []);
 
+
 useEffect(() => {
 
   const loadBookedSeats = async () => {
@@ -48,24 +49,43 @@ useEffect(() => {
       const res = await fetch("/api/schedules");
       const data = await res.json();
 
-      const bookedIds = new Set(data.map(s => s.room));
-      setTakenSeats(bookedIds);
+      const map = new Map();
+
+      const now = new Date();
+
+        data.forEach(s => {
+          const start = new Date(s.date);
+          start.setHours(parseInt(s.timeSlot.startTime),0,0,0);
+
+          const end = new Date(s.date);
+          end.setHours(parseInt(s.timeSlot.endTime),0,0,0);
+
+          let status = "booked";
+
+          if(now >= start && now < end) status = "checkedin";
+          else if(now >= end) status = "completed";
+
+          map.set(String(s.room), status);
+        });
+
+      setTakenSeats(map);
+
     } catch (err) {
-      console.error("loadBookedSeats error", err);
+      console.error(err);
     }
   };
 
-  // โหลดครั้งแรก
-  loadBookedSeats();
+  
+  
 
-  // realtime update
+
+  loadBookedSeats();
   socket.on("schedule-updated", loadBookedSeats);
 
-  return () => {
-    socket.off("schedule-updated", loadBookedSeats);
-  };
+  return () => socket.off("schedule-updated", loadBookedSeats);
 
 }, []);
+
 
 
   
@@ -461,7 +481,8 @@ const startDrag = (e, it) => {
 
 
   
-  const isTaken = takenSeats.has(it._id);
+  const status = takenSeats.get(it._id);
+  const isTaken = !!status;
   const isSelected = selectedSeat === it._id;
 
 
@@ -473,7 +494,9 @@ const startDrag = (e, it) => {
     "seat-abs",
     it.zone === "B" ? "seat-b" : "",
     it.size === "tiny" ? "seat-tiny" : "",
-    isTaken ? "taken" : "",
+    status === "booked" ? "seat-booked" :
+    status === "checkedin" ? "seat-checkedin" :
+    "seat-available",
     isSelected ? "selected" : "",
     selectedItemId === it._id ? "admin-selected" : "",
     it.zone ? `zone-${it.zone}` : "",
