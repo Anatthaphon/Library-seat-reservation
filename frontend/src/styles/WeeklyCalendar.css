@@ -41,7 +41,7 @@
 .calendar-body {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  height: 600px;
+  height: fit-content;
   background: #ffffff;
 }
 

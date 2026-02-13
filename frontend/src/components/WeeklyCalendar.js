@@ -3,7 +3,7 @@ import '../styles/WeeklyCalendar.css';
 
 const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) => {
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const timeSlots = Array.from({ length: 10 }, (_, i) => 9 + i);
+  const timeSlots = Array.from({ length: 9 }, (_, i) => 9 + i);
 
   const getMondayOfWeek = () => {
     const date = new Date(currentDate);
