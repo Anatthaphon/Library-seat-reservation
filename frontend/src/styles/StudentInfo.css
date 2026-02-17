@@ -148,3 +148,11 @@
     margin-bottom: 20px;
     font-size: 16px;
 }
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+.sortable-header:hover {
+    color: #1890ff;
+}

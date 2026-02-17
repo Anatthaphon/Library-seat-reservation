@@ -2,54 +2,84 @@ import React, { useState, useEffect } from "react";
 import "../styles/StudentInfo.css";
 
 const MOCK_STUDENTS = [
-  { id: "1", name: "ตัั้ง", nickname: "แต่วันว่าง", studentNumber: "66xxxxxxxx", contact: "xxx-xxxxxxx", email: "tung@ku.ac.th" },
-  { id: "2", name: "แป้ง", nickname: "ลื่นไหล", studentNumber: "65xxxxxxxx", contact: "xxx-xxxxxxx", email: "pang@ku.ac.th" },
-  { id: "3", name: "โบ๊ท", nickname: "ไม่รู้", studentNumber: "67xxxxxxxx", contact: "xxx-xxxxxxx", email: "boat@ku.ac.th" },
+  { id: "1", name: "ตัั้ง", nickname: "แต่วันว่าง", studentNumber: "6612345678", contact: "081-xxxxxxx", email: "tung@ku.ac.th", seat: "A1", status: "Check-in" },
+  { id: "2", name: "แป้ง", nickname: "ลื่นไหล", studentNumber: "6512345678", contact: "082-xxxxxxx", email: "pang@ku.ac.th", seat: "A4", status: "Check-in" },
+  { id: "3", name: "โบ๊ท", nickname: "ไม่รู้", studentNumber: "6712345678", contact: "083-xxxxxxx", email: "boat@ku.ac.th", seat: "A7", status: "Booked" },
+  { id: "4", name: "จิว", nickname: "จิว", studentNumber: "6622345678", contact: "084-xxxxxxx", email: "jiw@ku.ac.th", seat: "A9", status: "Inactive" },
 ];
 
 export default function StudentInfo() {
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [studentBookings, setStudentBookings] = useState([]);
-  
-  // ✅ เพิ่ม State สำหรับเก็บ ID ของนิสิตที่ถูกติ๊กเลือก
   const [selectedIds, setSelectedIds] = useState([]);
+  const [studentBookings, setStudentBookings] = useState([]);
+  const [sortColumn, setSortColumn] = useState(""); 
+  const [sortDirection, setSortDirection] = useState("asc");
 
+  // ดึงข้อมูลประวัติการจองเมื่อเลือกนิสิต
   useEffect(() => {
-    const bookings = JSON.parse(localStorage.getItem("bookings") || "[]");
-    const cancels = JSON.parse(localStorage.getItem("cancelHistory") || "[]");
-    const combined = [
-      ...bookings.map(b => ({ ...b, status: 'active' })),
-      ...cancels.map(c => ({ ...c, status: 'cancelled', seat: 'C3' }))
-    ];
-    setStudentBookings(combined);
+    if (selectedStudent) {
+      const bookings = JSON.parse(localStorage.getItem("bookings") || "[]");
+      const cancels = JSON.parse(localStorage.getItem("cancelHistory") || "[]");
+      
+      // รวมข้อมูลจำลอง (ในงานจริงควรกรองตาม ID ของ selectedStudent)
+      const combined = [
+        ...bookings.map(b => ({ ...b, status: 'active' })),
+        ...cancels.map(c => ({ ...c, status: 'cancelled', seat: 'C3', date: '2025-01-05' }))
+      ];
+      setStudentBookings(combined);
+    }
   }, [selectedStudent]);
 
-  // ✅ ฟังก์ชันสำหรับ "เลือกทั้งหมด"
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      // ถ้าติ๊กหัวตาราง ให้ใส่ ID ของนักเรียนทุกคนลงใน Array
-      setSelectedIds(MOCK_STUDENTS.map(s => s.id));
+  const handleSort = (column) => {
+    if (column === "name") return; 
+    const isCurrentCol = sortColumn === column;
+    if (isCurrentCol) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      // ถ้าเอาติ๊กออก ให้ล้าง Array เป็นว่างเปล่า
-      setSelectedIds([]);
+      setSortColumn(column);
+      setSortDirection("asc");
     }
   };
 
-  // ✅ ฟังก์ชันสำหรับเลือกรายคน
-  const handleSelectRow = (e, id) => {
-    e.stopPropagation(); // กันไม่ให้กดแล้วเด้งไปหน้า Detail
-    if (e.target.checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(item => item !== id));
+  const renderSortIcon = (column) => {
+    if (column === "name") return null;
+    if (sortColumn !== column) return " ↓"; 
+    return sortDirection === "asc" ? " ↓" : " ↑";
+  };
+
+  const sortedStudents = [...MOCK_STUDENTS].sort((a, b) => {
+    if (!sortColumn) return 0;
+    let valA = a[sortColumn];
+    let valB = b[sortColumn];
+
+    if (sortColumn === "status") {
+      const priority = { "Check-in": 3, "Booked": 2, "Inactive": 1 };
+      valA = priority[valA] || 0;
+      valB = priority[valB] || 0;
     }
+
+    if (sortDirection === "asc") return valA > valB ? 1 : -1;
+    return valA < valB ? 1 : -1;
+  });
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) setSelectedIds(MOCK_STUDENTS.map(s => s.id));
+    else setSelectedIds([]);
+  };
+
+  const handleSelectRow = (e, id) => {
+    e.stopPropagation();
+    if (e.target.checked) setSelectedIds(prev => [...prev, id]);
+    else setSelectedIds(prev => prev.filter(item => item !== id));
   };
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
     const d = new Date(dateStr);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
   };
 
+  // --- ส่วนแสดงผลหน้ารายละเอียด (Detail View) ---
   if (selectedStudent) {
     return (
       <div className="student-detail-container">
@@ -57,21 +87,45 @@ export default function StudentInfo() {
         <div className="info-card">
           <h2>{selectedStudent.name}</h2>
           <p className="subtitle">Cancelled 2/3 January</p>
+          
           <div className="info-grid">
-            <div className="info-group"><label>Name</label><div className="read-only-field">{selectedStudent.name}</div></div>
-            <div className="info-group"><label>Nick Name</label><div className="read-only-field">{selectedStudent.nickname}</div></div>
-            <div className="info-group"><label>Student Number</label><div className="read-only-field">{selectedStudent.studentNumber}</div></div>
-            <div className="info-group"><label>Contact</label><div className="read-only-field">{selectedStudent.contact}</div></div>
-            <div className="info-group full-width"><label>Email</label><div className="read-only-field">{selectedStudent.email}</div></div>
+            <div className="info-group">
+              <label>Name</label>
+              <div className="read-only-field">{selectedStudent.name}</div>
+            </div>
+            <div className="info-group">
+              <label>Nick Name</label>
+              <div className="read-only-field">{selectedStudent.nickname}</div>
+            </div>
+            <div className="info-group">
+              <label>Student Number</label>
+              <div className="read-only-field">{selectedStudent.studentNumber}</div>
+            </div>
+            <div className="info-group">
+              <label>Contact</label>
+              <div className="read-only-field">{selectedStudent.contact}</div>
+            </div>
+            <div className="info-group full-width">
+              <label>Email</label>
+              <div className="read-only-field">{selectedStudent.email}</div>
+            </div>
           </div>
+
           <table className="history-table">
-            <thead><tr><th>Date</th><th>Seat</th><th>Time</th><th>หมายเหตุ</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Seat</th>
+                <th>Time</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
             <tbody>
               {studentBookings.map((b, index) => (
                 <tr key={index} className={b.status === 'cancelled' ? 'row-orange' : 'row-green'}>
-                  <td>{b.date ? formatDate(b.date) : "N/A"}</td>
+                  <td>{formatDate(b.date || b.bookingDate)}</td>
                   <td>{b.seatItemId || b.seat || "-"}</td>
-                  <td>{b.startTime}:00 - {b.endTime}:00</td>
+                  <td>{b.startTime || "12"}:00 - {b.endTime || "13"}:00</td>
                   <td>{b.status === 'cancelled' ? 'Cancelled' : ''}</td>
                 </tr>
               ))}
@@ -82,6 +136,7 @@ export default function StudentInfo() {
     );
   }
 
+  // --- ส่วนแสดงผลหน้ารายชื่อ (List View) ---
   return (
     <div className="student-list-container">
       <div className="list-header">
@@ -97,22 +152,29 @@ export default function StudentInfo() {
         <thead>
           <tr>
             <th>
-              {/* ✅ ติ๊กถูกอันบนสุดสำหรับเลือกทั้งหมด */}
               <input 
                 type="checkbox" 
                 onChange={handleSelectAll}
                 checked={selectedIds.length === MOCK_STUDENTS.length && MOCK_STUDENTS.length > 0}
               />
             </th>
-            <th>Column heading ↓</th>
-            <th>Student Number ↓</th>
-            <th>Contact ↓</th>
-            <th>Seat ↓</th>
-            <th>Status ↓</th>
+            <th style={{ cursor: "default" }}>Column heading</th>
+            <th onClick={() => handleSort("studentNumber")} className="sortable-header">
+              Student Number {renderSortIcon("studentNumber")}
+            </th>
+            <th onClick={() => handleSort("contact")} className="sortable-header">
+              Contact {renderSortIcon("contact")}
+            </th>
+            <th onClick={() => handleSort("seat")} className="sortable-header">
+              Seat {renderSortIcon("seat")}
+            </th>
+            <th onClick={() => handleSort("status")} className="sortable-header">
+              Status {renderSortIcon("status")}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {MOCK_STUDENTS.map((s) => (
+          {sortedStudents.map((s) => (
             <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
               <td>
                 <input 
@@ -125,8 +187,12 @@ export default function StudentInfo() {
               <td>{s.name} {s.nickname}</td>
               <td>{s.studentNumber}</td>
               <td>{s.contact}</td>
-              <td>A1</td>
-              <td><span className="status-badge">Check-in</span></td>
+              <td>{s.seat}</td>
+              <td>
+                <span className={`status-badge ${s.status.toLowerCase().replace(" ", "-")}`}>
+                  {s.status}
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>
