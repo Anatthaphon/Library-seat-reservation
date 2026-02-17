@@ -37,6 +37,11 @@
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-add:hover {
+    opacity: 0.85;
 }
 
 .btn-icon {
@@ -45,6 +50,12 @@
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    border-color: #1890ff;
+    color: #1890ff;
 }
 
 /* ตารางหลัก */
@@ -89,7 +100,7 @@
     font-size: 12px;
 }
 
-/* --- หน้า Detail (ภาพที่ 2) --- */
+/* --- หน้า Detail --- */
 .info-card {
     background: white;
     padding: 32px;
@@ -126,7 +137,7 @@
 /* ตารางประวัติการจอง */
 .history-table {
     width: 100%;
-    margin-top: 40px;
+    margin-top: 20px;
     border-collapse: collapse;
 }
 
@@ -136,9 +147,15 @@
     background: #f0f0f0;
 }
 
+.history-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
 /* สีแถวตามสถานะ */
 .row-green { background-color: #f6ffed !important; }
 .row-orange { background-color: #fff7e6 !important; }
+.row-white { background-color: #ffffff !important; }
 
 .back-btn {
     border: none;
@@ -147,25 +164,36 @@
     cursor: pointer;
     margin-bottom: 20px;
     font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-.sortable-header {
-    cursor: pointer;
-    user-select: none;
+.back-btn:hover {
+    text-decoration: underline;
 }
+
+/* หัวข้อ Sort ที่กดได้ */
+.sortable-header {
+    cursor: pointer !important; /* บังคับให้เป็นรูปมือ */
+    user-select: none;
+    transition: all 0.2s;
+}
+
 .sortable-header:hover {
     color: #1890ff;
+    background-color: #f0f0f0; /* ไฮไลท์หัวตารางตอนเอาเมาส์จี้ */
 }
 
-/* --- ส่วนปรับปรุง Month Pagination ให้ดูดีขึ้น --- */
+/* --- ส่วนปรับปรุง Month Pagination ให้ดู Professional --- */
 .history-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end; /* ปรับให้ชื่อตารางกับปุ่มอยู่แนวเดียวกัน */
+    align-items: center; 
     margin-top: 40px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 15px;
     padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
 .history-header h3 {
@@ -179,9 +207,9 @@
     align-items: center;
     background: #ffffff;
     border: 1px solid #d9d9d9;
-    border-radius: 8px; /* เปลี่ยนเป็นเหลี่ยมมนให้เข้ากับกล่องด้านบน */
-    padding: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    border-radius: 6px; 
+    padding: 2px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.015);
 }
 
 .btn-nav {
@@ -192,11 +220,11 @@
     height: 32px;
     border: none;
     background: transparent;
-    cursor: pointer;
+    cursor: pointer; /* เมาส์รูปมือ */
     font-size: 16px;
     color: #8c8c8c;
-    border-radius: 6px;
-    transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+    border-radius: 4px;
+    transition: all 0.2s;
 }
 
 .btn-nav:hover {
@@ -213,7 +241,7 @@
     font-size: 14px;
     color: #434343;
     padding: 0 15px;
-    min-width: 140px; /* เพิ่มพื้นที่ให้ชื่อเดือนยาวๆ */
+    min-width: 150px; 
     text-align: center;
     user-select: none;
 }

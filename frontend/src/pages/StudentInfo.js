@@ -163,11 +163,20 @@ export default function StudentInfo() {
         <thead>
           <tr>
             <th><input type="checkbox" onChange={(e) => e.target.checked ? setSelectedIds(MOCK_STUDENTS.map(s => s.id)) : setSelectedIds([])} checked={selectedIds.length === MOCK_STUDENTS.length} /></th>
-            <th>Column heading</th>
-            <th onClick={() => handleSort("studentNumber")}>Student Number {renderSortIcon("studentNumber")}</th>
-            <th onClick={() => handleSort("contact")}>Contact {renderSortIcon("contact")}</th>
-            <th onClick={() => handleSort("seat")}>Seat {renderSortIcon("seat")}</th>
-            <th onClick={() => handleSort("status")}>Status {renderSortIcon("status")}</th>
+            <th>Column heading</th> {/* คอลัมน์นี้ handleSort ไม่ทำงาน เลยไม่ต้องใส่ */}
+            {/* เพิ่ม className="sortable-header" ให้ 4 คอลัมน์นี้ */}
+            <th onClick={() => handleSort("studentNumber")} className="sortable-header">
+              Student Number {renderSortIcon("studentNumber")}
+            </th>
+            <th onClick={() => handleSort("contact")} className="sortable-header">
+              Contact {renderSortIcon("contact")}
+            </th>
+            <th onClick={() => handleSort("seat")} className="sortable-header">
+              Seat {renderSortIcon("seat")}
+            </th>
+            <th onClick={() => handleSort("status")} className="sortable-header">
+              Status {renderSortIcon("status")}
+            </th>
           </tr>
         </thead>
         <tbody>
