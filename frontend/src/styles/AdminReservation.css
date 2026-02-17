@@ -1,0 +1,27 @@
+/* Modal Overlay สำหรับหน้า Admin */
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* ปรับแต่ง Badge เฉพาะหน้า Admin */
+.status-badge.inactive {
+    background: #fff1f0;
+    color: #ff4d4f;
+    border-color: #ffccc7;
+}
+
+/* เพิ่มให้ input ใน Modal ดูเข้ากับธีม */
+input.read-only-field:focus {
+    outline: none;
+    border-color: #1890ff;
+    background: white;
+}
