@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import './styles/App.css';
 
 // Pages
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Planning from './pages/Planning';
 import SeatMap from './pages/SeatMap';
 import Reserve from './pages/reserve';
@@ -14,7 +16,9 @@ import EditSeatMap from "./pages/EditSeatMap";
 import SeatMapHistory from "./pages/SeatMapHistory";
 
 
+
 // Components
+import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 
@@ -33,15 +37,39 @@ function App() {
         <div className="main-content">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/planning" element={<Planning />} />
+            <Route
+              path="/planning"
+              element={
+                <ProtectedRoute>
+                  <Planning />
+                </ProtectedRoute>
+              }
+            />
+
 
             {/* Seat map */}
             <Route path="/seat-map" element={<SeatMap />} />
-            <Route path="/seatmap" element={<SeatMap />} />
+            <Route
+              path="/seatmap"
+              element={
+                <ProtectedRoute>
+                  <SeatMap />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Reservation */}
-            <Route path="/reserve" element={<Reserve />} />
+            <Route
+              path="/reserve"
+              element={
+                <ProtectedRoute>
+                  <Reserve />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin Pages */}
             <Route path="/admin-reservation" element={<AdminReservation />} />

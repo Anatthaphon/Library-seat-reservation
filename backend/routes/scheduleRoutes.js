@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
+const Schedule = require('../models/Schedule');
+
 
 // Get all schedules
 router.get('/', scheduleController.getAllSchedules);
@@ -17,8 +19,7 @@ router.get('/instructor/:instructorId', scheduleController.getSchedulesByInstruc
 // Get schedule by ID (ต้องไว้ท้าย ๆ)
 router.get('/:id', scheduleController.getScheduleById);
 
-router.post('/bulk', scheduleController.createBulkSchedules);
-
+router.post("/bulk", scheduleController.createBulkSchedules);
 
 // Create new schedule/event
 router.post('/', scheduleController.createSchedule);

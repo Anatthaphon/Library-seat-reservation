@@ -43,30 +43,43 @@ export default function Reserve() {
   }, [cancelHistory]);
 
   useEffect(() => {
-    if (location.state?.booking) {
-      const incoming = location.state.booking;
-      if (!incoming.id) {
-        const formatToHourNumber = (t) => {
-          if (typeof t === 'number') return t;
-          return parseInt(String(t).split(':')[0], 10);
-        };
-        const newBooking = {
-          ...incoming,
-          id: Date.now() + Math.random(),
-          startTime: formatToHourNumber(incoming.startTime), 
-          endTime: formatToHourNumber(incoming.endTime),
-          date: incoming.date instanceof Date ? incoming.date.toISOString() : incoming.date
-        };
-        setDraftBookings(prev => {
-          const isDuplicate = prev.some(b => 
-            b.date === newBooking.date && b.startTime === newBooking.startTime && b.seatItemId === newBooking.seatItemId
-          );
-          return isDuplicate ? prev : [...prev, newBooking];
-        });
-      }
-      window.history.replaceState({}, document.title);
+  if (!location.state?.seatItemId) return;
+  const incoming = location.state;
+
+  const formatToHourNumber = (t) => {
+    if (typeof t === "number") return t;
+    return parseInt(String(t).split(":")[0], 10);
+  };
+
+  const newBooking = {
+    ...incoming,
+    id: incoming.id || Date.now() + Math.random(),
+    seatId: incoming.seatItemId || incoming.seatId,
+    seatName: incoming.seatName,
+    startTime: formatToHourNumber(incoming.startTime),
+    endTime: formatToHourNumber(incoming.endTime),
+    date:
+      incoming.date instanceof Date
+        ? incoming.date.toISOString()
+        : incoming.date,
+  };
+
+  setDraftBookings((prev) => {
+    const index = prev.findIndex(b => b.id === newBooking.id);
+
+    if (index !== -1) {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...newBooking };
+      return updated;
     }
-  }, [location.state]);
+
+    return [...prev, newBooking];
+  });
+
+  window.history.replaceState({}, document.title);
+}, [location.state]);
+
+
 
   const cancelCountThisMonth = useMemo(() => {
     const now = new Date();
@@ -105,6 +118,36 @@ export default function Reserve() {
   return saved ? JSON.parse(saved) : [];
 });
 
+useEffect(() => {
+  if (location.state?.drafts) {
+
+    const newDrafts = location.state.drafts.map(d => ({
+      ...d,
+      id: Date.now() + Math.random(),
+      date: typeof d.date === "string" ? d.date : new Date(d.date).toISOString(),
+      startTime: parseInt(d.startTime),
+      endTime: parseInt(d.endTime)
+    }));
+
+    setDraftBookings(prev => {
+      const merged = [...prev, ...newDrafts];
+
+      // กันซ้ำ
+      return merged.filter(
+        (v,i,a)=>
+          a.findIndex(x =>
+            x.date===v.date &&
+            x.startTime===v.startTime
+          )===i
+      );
+    });
+
+    // เคลียร์ state กัน refresh ซ้ำ
+    window.history.replaceState({}, document.title);
+  }
+}, [location.state]);
+
+
 
 
   useEffect(() => {
@@ -135,14 +178,30 @@ export default function Reserve() {
   };
 
   const handleSubmitAll = async () => {
+    if (draftBookings.some(b => !(b.seatItemId || b.seatId))) {
+  alert("กรุณาเลือกโต๊ะให้ครบทุก Draft ก่อน");
+  return;
+}
+
   try {
-    const res = await fetch("/api/schedules/bulk", {
+    const res = await fetch("http://localhost:3001/api/schedules/bulk", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ bookings: draftBookings })
+      body: JSON.stringify({
+        bookings: draftBookings.map(b => ({
+          date: b.date,
+          seatItemId: b.seatItemId || b.seatId,
+          subject: b.subject || "",
+          startTime: b.startTime,
+          endTime: b.endTime
+        }))
+        })
+
     });
+    
+
 
     if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
 
@@ -229,14 +288,19 @@ const handleDeleteDraft = (id) => {
                           past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
                           onShowDetails={(booking) => {
                             if (isDraft) {
-                              if (window.confirm("ลบ Draft นี้หรือไม่?")) {
-                                handleDeleteDraft(booking.id);
-                              }
+
+                              // เปิด popup แก้ draft
+                              setDraft({
+                                ...booking,
+                                date: new Date(booking.date)
+                              });
+
                             } else {
                               setSelectedBooking(booking);
                               setShowViewPopup(true);
                             }
                           }}
+
                         />
                       );
                     })}
@@ -267,34 +331,49 @@ const handleDeleteDraft = (id) => {
 
       
 
-      {draft && (
+{draft && (
   <ReservePopup
     data={draft}
     allBookings={bookings}
+
     onClose={() => setDraft(null)}
+
+    onDelete={() => {
+      setDraftBookings(prev => prev.filter(b => b.id !== draft.id));
+      setDraft(null);
+    }}
+
     onAccept={(final) => {
       const newDraft = {
         ...final,
+        seatId: final.seatId,
         date: final.date.toISOString(),
         id: Date.now() + Math.random()
       };
 
       setDraftBookings(prev => {
-        const isDuplicate = prev.some(b =>
+        const index = prev.findIndex(b =>
           b.date === newDraft.date &&
-          b.startTime === newDraft.startTime &&
-          b.seatItemId === newDraft.seatItemId
+          b.startTime === newDraft.startTime
         );
 
-        return isDuplicate ? prev : [...prev, newDraft];
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], ...newDraft };
+          return updated;
+        }
+
+        return [...prev, newDraft];
       });
 
       setDraft(null);
     }}
+
     onSelectSeat={(curr) =>
       navigate("/seatmap", {
         state: {
           ...curr,
+          id: draft?.id,   // ⭐ สำคัญมาก
           date: curr.date.toISOString(),
           returnTo: "/reserve"
         }
@@ -302,6 +381,7 @@ const handleDeleteDraft = (id) => {
     }
   />
 )}
+
 
 
       {showViewPopup && (

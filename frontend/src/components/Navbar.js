@@ -1,39 +1,60 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import '../styles/Navbar.css';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import "../styles/Navbar.css";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = localStorage.getItem("token");
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <button
-          onClick={() => {
-            const next = localStorage.getItem("role") === "admin" ? "user" : "admin";
-            localStorage.setItem("role", next);
-            window.location.reload();
-          }}
-        >
-          Switch Role
-        </button>
 
-        {/* เว้นฝั่งซ้ายไว้โล่ง ๆ */}
-        <div></div>
+        {/* LEFT — โลโก้หรือชื่อเว็บ */}
+        <div className="navbar-logo">
+          <Link to="/">Library</Link>
+        </div>
 
-        {/* เมนูฝั่งขวา (ถ้าอยากให้มี) */}
+        {/* RIGHT */}
         <ul className="navbar-menu">
 
-          {/* ถ้ายังไม่อยากให้มีเมนูเลย ลบ <li> ทั้งหมดได้ */}
-          
-          {/* 
-          <li className="navbar-item">
-            <Link to="/planning" className="navbar-link">
-              Planning
-            </Link>
-          </li>
-          */}
+          {!token ? (
+            <>
+              <li>
+                <Link to="/login" className="nav-btn">
+                  Log in
+                </Link>
+              </li>
+
+              <li>
+                <Link to="/register" className="nav-btn outline">
+                  Sign up
+                </Link>
+              </li>
+            </>
+          ) : (
+            <>
+              <li className="nav-user">
+                {user?.studentId} {user?.name} {user?.surname}
+              </li>
+
+              <li>
+                <button onClick={logout} className="nav-btn">
+                  Logout
+                </button>
+              </li>
+            </>
+          )}
 
         </ul>
-
       </div>
     </nav>
   );

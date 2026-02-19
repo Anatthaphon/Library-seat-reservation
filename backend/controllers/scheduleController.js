@@ -147,6 +147,8 @@ exports.getSchedulesByInstructor = async (req, res) => {
 
 exports.createBulkSchedules = async (req, res) => {
   try {
+    console.log("BODY:", JSON.stringify(req.body, null, 2));
+
     const { bookings } = req.body;
 
     if (!Array.isArray(bookings) || bookings.length === 0) {
@@ -154,12 +156,20 @@ exports.createBulkSchedules = async (req, res) => {
     }
 
     const docs = bookings.map(b => {
-      if (!b.date || !b.startTime || !b.endTime)
-        throw new Error("Missing required booking fields");
 
-      const roomId = b.seatItemId || b.seatId;
-      if (!roomId)
+      if (
+        b.date == null ||
+        b.startTime == null ||
+        b.endTime == null
+      ) {
+        throw new Error("Missing required booking fields");
+      }
+
+      const roomId = b.room || b.seatItemId || b.seatId;
+
+      if (!roomId) {
         throw new Error("Seat ID missing");
+      }
 
       return {
         title: b.subject || "Seat Reservation",
@@ -183,9 +193,10 @@ exports.createBulkSchedules = async (req, res) => {
     res.status(201).json(created);
 
   } catch (err) {
-    console.error("BULK CREATE ERROR:", err.message);
+    console.error("BULK CREATE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/SeatMap.css";
-import { socket } from "../socket";
 
 export default function SeatMap() {
   const location = useLocation();
@@ -27,7 +26,7 @@ const [takenSeats, setTakenSeats] = useState(new Map());
 useEffect(() => {
   const load = async () => {
     try {
-      const res = await fetch("/api/seatmap/items?mapId=main");
+      const res = await fetch("http://localhost:3001/api/seatmap/items?mapId=main");
       if (!res.ok) throw new Error("โหลดไม่สำเร็จ");
       const data = await res.json();
       setItems(data);
@@ -46,27 +45,26 @@ useEffect(() => {
 
   const loadBookedSeats = async () => {
     try {
-      const res = await fetch("/api/schedules");
+      const res = await fetch("http://localhost:3001/api/schedules");
       const data = await res.json();
 
       const map = new Map();
-
       const now = new Date();
 
-        data.forEach(s => {
-          const start = new Date(s.date);
-          start.setHours(parseInt(s.timeSlot.startTime),0,0,0);
+      data.forEach(s => {
+        const start = new Date(s.date);
+        start.setHours(parseInt(s.timeSlot.startTime),0,0,0);
 
-          const end = new Date(s.date);
-          end.setHours(parseInt(s.timeSlot.endTime),0,0,0);
+        const end = new Date(s.date);
+        end.setHours(parseInt(s.timeSlot.endTime),0,0,0);
 
-          let status = "booked";
+        let status = "booked";
 
-          if(now >= start && now < end) status = "checkedin";
-          else if(now >= end) status = "completed";
+        if(now >= start && now < end) status = "checkedin";
+        else if(now >= end) status = "completed";
 
-          map.set(String(s.room), status);
-        });
+        map.set(String(s.room), status);
+      });
 
       setTakenSeats(map);
 
@@ -75,17 +73,15 @@ useEffect(() => {
     }
   };
 
-  
-  
-
-
+  // โหลดครั้งแรก
   loadBookedSeats();
-  socket.on("schedule-updated", loadBookedSeats);
 
-  return () => socket.off("schedule-updated", loadBookedSeats);
+  // 🔁 polling ทุก 5 วินาที
+  const interval = setInterval(loadBookedSeats, 3000);
+
+  return () => clearInterval(interval);
 
 }, []);
-
 
 
   
@@ -143,7 +139,7 @@ if (loading) {
     isActive: true,
   };
 
-  const res = await fetch("/api/seatmap/items", {
+  const res = await fetch("http://localhost:3001/api/seatmap/items", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -170,7 +166,7 @@ const handleDeleteSelected = async () => {
     return;
   }
 
-  const res = await fetch(`/api/seatmap/items/${selectedItemId}`, {
+  const res = await fetch(`http://localhost:3001/api/seatmap/items/${selectedItemId}`, {
     method: "DELETE",
     headers: {
       "x-role": localStorage.getItem("role"),
@@ -205,14 +201,13 @@ const handleDeleteSelected = async () => {
     navigate(returnTo, {
       replace: true,
       state: {
-        booking: {
-          date: state.date,
-          startTime: state.startTime,
-          endTime: state.endTime,
-          seatItemId: selectedSeat,
-          seatName: seat?.meta?.name || "Seat",
-          subject: state.subject || "",
-        },
+        id: state.id,
+        date: state.date,
+        startTime: state.startTime,
+        endTime: state.endTime,
+        seatItemId: selectedSeat,
+        seatName: seat?.meta?.name,
+        subject: state.subject || "",
       },
     });
   };
@@ -282,7 +277,7 @@ const startDrag = (e, it) => {
     document.removeEventListener("mouseup", handleMouseUp);
 
     try {
-      await fetch(`/api/seatmap/items/${it._id}`, {
+      await fetch(`http://localhost:3001/api/seatmap/items/${it._id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -323,22 +318,7 @@ const startDrag = (e, it) => {
         <span>Disabled</span>
       </div>
 
-      {/* ✅ Booking card ใต้ STATUS */}
-      <div
-        className="booking-card"
-        style={{ borderColor: state?.color || getColorByDay(new Date(state.date)) }}
-      >
-        <div
-          className="booking-time"
-          style={{ background: state?.color || getColorByDay(new Date(state.date)) }}
-        >
-          {state.startTime} - {state.endTime}
-        </div>
-
-        <div className="booking-title">
-          {state.title || "Event"}
-        </div>
-      </div>
+      
     </aside>
 
 
@@ -482,7 +462,7 @@ const startDrag = (e, it) => {
 
   
   const status = takenSeats.get(it._id);
-  const isTaken = !!status;
+  const isTaken = status === "booked" || status === "checkedin";
   const isSelected = selectedSeat === it._id;
 
 

@@ -35,7 +35,7 @@ function formatDate(date) {
   return d.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
 }
 
-export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, allBookings }) {
+export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, allBookings, onDelete  }) {
   const [duration, setDuration] = useState(1);
 
   // คำนวณชั่วโมงสูงสุดที่ไม่เกินเวลาปิด 18.00
@@ -86,10 +86,12 @@ export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, al
 
     onAccept({
       ...data,
+      seatName: data.seatName,
       startTime: newStartTime,
       endTime: newEndTime,
       date: data.date instanceof Date ? data.date : new Date(data.date),
     });
+
   };
 
   return (
@@ -120,7 +122,7 @@ export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, al
     {data.seatId ? (
       <>
         <strong style={{ color: '#2ecc71', fontSize: '18px' }}>
-          {data.seatId}
+          {data.seatName || data.seatId}
         </strong>
         <button
           className="btn-action"
@@ -165,9 +167,30 @@ export default function ReservePopup({ data, onClose, onAccept, onSelectSeat, al
 
 
         <div className="form-actions-container">
-          <button className="btn-action cancel" onClick={onClose}>Cancel</button>
-          <button className="btn-action confirm" onClick={handleConfirm}>Confirm</button>
+          {data?.id && (
+            <button
+              className="btn-action delete"
+              style={{ background:"#ff4d4f", color:"white" }}
+              onClick={()=>{
+                if(window.confirm("ลบ draft นี้ ?")){
+                  onDelete?.();
+                }
+              }}
+            >
+              Delete
+            </button>
+          )}
+
+          <button className="btn-action cancel" onClick={onClose}>
+            Cancel
+          </button>
+
+          <button className="btn-action confirm" onClick={handleConfirm}>
+            Confirm
+          </button>
+
         </div>
+
       </div>
     </div>
   );

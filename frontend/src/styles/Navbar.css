@@ -54,3 +54,66 @@
   background: transparent;
   color: white;
 }
+
+.navbar{
+  background:#2e7d32;
+  height:70px;
+  display:flex;
+  align-items:center;
+}
+
+.navbar-container{
+  width:100%;
+  max-width:1200px;
+  margin:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 20px;
+}
+
+.navbar-logo a{
+  color:white;
+  font-size:22px;
+  font-weight:bold;
+  text-decoration:none;
+}
+
+.navbar-menu{
+  display:flex;
+  gap:15px;
+  list-style:none;
+  align-items:center;
+}
+
+.nav-btn{
+  background:white;
+  color:#2e7d32;
+  padding:8px 18px;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:600;
+  border:none;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.nav-btn:hover{
+  background:#e8f5e9;
+}
+
+.nav-btn.outline{
+  background:transparent;
+  border:2px solid white;
+  color:white;
+}
+
+.nav-btn.outline:hover{
+  background:white;
+  color:#2e7d32;
+}
+
+.nav-user{
+  color:white;
+  font-weight:600;
+}

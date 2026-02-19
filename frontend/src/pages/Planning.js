@@ -136,52 +136,47 @@ const Planning = () => {
   };
 
   const handleReserve = () => {
-    // 1) ถ้าผู้ใช้เลือกช่อง/อีเวนต์ไว้ → จองอันนั้นก่อน
-    const selected = getSelectedSlot();
-    if (selected) {
-      const fake = { date: selected.date, timeSlot: { endTime: selected.endTime || '00:00' } };
 
-      if (!isReservable(fake)) {
-        alert('จองได้เฉพาะแพลนในวันนี้ถึงอีก 2 วันถัดไป (และไม่ใช่วันอาทิตย์)');
-        return;
+  const now = new Date();
+
+  const validPlans = schedules
+    .filter(s => {
+      const d = new Date(s.date);
+
+      // ❌ ไม่เอา Sunday
+      if (d.getDay() === 0) return false;
+
+      // เฉพาะวันนี้ + 2 วัน
+      const diffDays = (d - now) / (1000*60*60*24);
+      if (diffDays < 0 || diffDays > 2) return false;
+
+      // ถ้าวันนี้ → ต้องยังไม่ถึงเวลา
+      if (d.toDateString() === now.toDateString()) {
+        const start = parseInt(s.timeSlot?.startTime?.split(":")[0] || "0",10);
+        if (start <= now.getHours()) return false;
       }
 
-      navigate('/seat-map', { state: selected });
-      return;
-    }
-
-    // 2) ไม่ได้เลือกอะไร → หาแพลนที่จองได้ที่ใกล้ที่สุดในวันนี้+2วัน
-    const reservable = [...schedules]
-      .filter(isReservable)
-      .sort((a, b) => {
-        const ad = new Date(a.date);
-        const bd = new Date(b.date);
-
-        const aStart = parseInt(a?.timeSlot?.startTime?.split(':')[0] || '0', 10);
-        const bStart = parseInt(b?.timeSlot?.startTime?.split(':')[0] || '0', 10);
-
-        ad.setHours(aStart, 0, 0, 0);
-        bd.setHours(bStart, 0, 0, 0);
-
-        return ad - bd;
-      });
-
-    if (reservable.length === 0) {
-      alert('ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วันถัดไป');
-      return;
-    }
-
-    const s = reservable[0];
-    const slot = {
+      return true;
+    })
+    .map(s => ({
       date: s.date,
       startTime: s.timeSlot?.startTime,
       endTime: s.timeSlot?.endTime,
       scheduleId: s._id,
       title: s.title,
-    };
+    }));
 
-    navigate('/seat-map', { state: slot });
-  };
+
+  if (validPlans.length === 0) {
+    alert("ไม่มีแพลนที่จองได้ในวันนี้ถึงอีก 2 วัน");
+    return;
+  }
+
+  navigate("/reserve", {
+    state: { drafts: validPlans }
+  });
+};
+
 
   useEffect(() => {
     loadSchedules();
