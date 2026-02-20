@@ -1,0 +1,46 @@
+.history-container {
+  padding: 40px;
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+.form-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.form-section input {
+  margin: 8px;
+  padding: 8px;
+  width: 180px;
+}
+
+.form-section button {
+  padding: 8px 16px;
+  background-color: #1e88e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.history-table {
+  width: 100%;
+  background: white;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+.history-table th {
+  background-color: #1e2a38;
+  color: white;
+}
