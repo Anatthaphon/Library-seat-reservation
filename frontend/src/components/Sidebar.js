@@ -76,7 +76,7 @@ const Sidebar = () => {
     </li>
 
     <li>
-      <Link to="/edit-seatmap" onClick={() => setOpen(false)}>
+      <Link to="/seatmap" onClick={() => setOpen(false)}>
         Edit seat map
       </Link>
     </li>

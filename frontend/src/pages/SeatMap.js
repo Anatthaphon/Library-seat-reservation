@@ -103,7 +103,7 @@ if (loading) {
 }
 
   // ===== กันเข้าหน้านี้แบบไม่มี state =====
-  if (!state) {
+  if (!state && !isAdmin) {
     return (
       <div className="seatmap-page" style={{ padding: 24 }}>
         <h2>ไม่มีข้อมูลการจอง</h2>
