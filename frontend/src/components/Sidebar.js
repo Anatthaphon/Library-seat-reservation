@@ -76,9 +76,13 @@ const Sidebar = () => {
     </li>
 
     <li>
-      <Link to="/seatmap" onClick={() => setOpen(false)}>
-        Edit seat map
-      </Link>
+     <Link
+  to="/seatmap"
+  state={{ forceAdmin: true }}
+  onClick={() => setOpen(false)}
+>
+  Edit seat map
+</Link>
     </li>
 
     <li>

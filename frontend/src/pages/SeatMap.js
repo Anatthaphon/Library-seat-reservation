@@ -9,9 +9,9 @@ export default function SeatMap() {
 
   const returnTo = state?.returnTo || "/reserve";
 
-  const role = localStorage.getItem("role"); // "admin" หรือ "user"
-  const isAdmin = role === "admin";
-
+  const user = JSON.parse(localStorage.getItem("user"));
+const role = user?.role;
+const isAdmin = role === "admin";
   const [showAddModal, setShowAddModal] = useState(false);
   const [addKind, setAddKind] = useState("A"); 
 // A | B | C | deco (deco = ของวางเฉยๆ กดไม่ได้)
