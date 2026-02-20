@@ -4,12 +4,9 @@ import '../styles/Sidebar.css';
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState("user"); // 👈 role ชั่วคราว
-
-  const switchRole = () => {
-    setRole(prev => prev === "user" ? "admin" : "user");
-  };
-
+  
+  const user = JSON.parse(localStorage.getItem("user"));
+  const role = user?.role || "guest";
   return (
     <>
       {/* ปุ่ม 3 ขีด */}
@@ -31,55 +28,69 @@ const Sidebar = () => {
             ✕
           </button>
 
-          <button className="switch-role-btn" onClick={switchRole}>
-            Switch Role
-          </button>
         </div>
 
         <ul>
-          {role === "user" ? (
-            <>
-              <li>
-                <Link to="/" onClick={() => setOpen(false)}>
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/planning" onClick={() => setOpen(false)}>
-                  Planning
-                </Link>
-              </li>
-              <li>
-                <Link to="/reserve" onClick={() => setOpen(false)}>
-                  Reservation
-                </Link>
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                <Link to="/admin-reservation" onClick={() => setOpen(false)}>
-                  Reservation
-                </Link>
-              </li>
-              <li>
-                <Link to="/student-info" onClick={() => setOpen(false)}>
-                  Student info
-                </Link>
-              </li>
-              <li>
-                <Link to="/edit-seatmap" onClick={() => setOpen(false)}>
-                  Edit seat map
-                </Link>
-              </li>
-              <li>
-                <Link to="/seatmap-history" onClick={() => setOpen(false)}>
-                  History edit seat map
-                </Link>
-              </li>
-            </>
-          )}
-        </ul>
+
+{/* ===== NOT LOGIN ===== */}
+{role === "guest" && (
+  <>
+    <li>
+      <Link to="/dashboard" onClick={() => setOpen(false)}>
+        Home
+      </Link>
+    </li>
+  </>
+)}
+
+{/* ===== USER ===== */}
+{role === "user" && (
+  <>
+    <li>
+      <Link to="/" onClick={() => setOpen(false)}>Home</Link>
+    </li>
+
+    <li>
+      <Link to="/planning" onClick={() => setOpen(false)}>Planning</Link>
+    </li>
+
+    <li>
+      <Link to="/reserve" onClick={() => setOpen(false)}>Reservation</Link>
+    </li>
+  </>
+)}
+
+{/* ===== ADMIN ===== */}
+{role === "admin" && (
+  <>
+    <li>
+      <Link to="/admin-reservation" onClick={() => setOpen(false)}>
+        Reservation
+      </Link>
+    </li>
+
+    <li>
+      <Link to="/student-info" onClick={() => setOpen(false)}>
+        Student info
+      </Link>
+    </li>
+
+    <li>
+      <Link to="/edit-seatmap" onClick={() => setOpen(false)}>
+        Edit seat map
+      </Link>
+    </li>
+
+    <li>
+      <Link to="/seatmap-history" onClick={() => setOpen(false)}>
+        History edit seat map
+      </Link>
+    </li>
+  </>
+)}
+
+</ul>
+
       </div>
     </>
   );

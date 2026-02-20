@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Frontend for Seat Reservation and Planning System",
   "private": true,
-  "proxy": "http://localhost:3001",
   "dependencies": {
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
@@ -21,7 +20,7 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "eslintConfig": {
     "extends": [

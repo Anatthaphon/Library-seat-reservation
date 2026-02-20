@@ -50,3 +50,6 @@ app.use((err,req,res,next)=>{
   console.error("SERVER ERROR:",err);
   res.status(500).json({error:err.message});
 });
+
+const authRoutes = require("./routes/authRoutes");
+app.use("/api/auth", authRoutes);

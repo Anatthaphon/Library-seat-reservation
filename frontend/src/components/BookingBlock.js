@@ -56,7 +56,7 @@ export default function BookingBlock({ booking, past, onShowDetails, isDraft }) 
 
       <div className="card-body-content">
         <span className="seat-number-text">
-          {booking.seatName || "Seat"}
+          {booking.seatName || booking.seatLabel || booking.roomName || "Seat"}
 
 
         </span>
