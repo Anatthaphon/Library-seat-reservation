@@ -14,48 +14,30 @@
     margin-bottom: 24px;
 }
 
-.label-tag {
-    background: #e6f7ff;
-    color: #1890ff;
-    border: 1px solid #91d5ff;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    margin-left: 10px;
-}
-
 /* ปุ่มต่างๆ */
 .header-actions {
     display: flex;
     gap: 10px;
 }
 
-.btn-add {
-    background-color: #1890ff;
+.btn-delete {
+    background-color: #ff4d4f; /* สีแดง */
     color: white;
     border: none;
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.btn-add:hover {
-    opacity: 0.85;
-}
-
-.btn-icon {
-    background: white;
-    border: 1px solid #d9d9d9;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
     transition: all 0.2s;
+    font-weight: 500;
 }
 
-.btn-icon:hover {
-    border-color: #1890ff;
-    color: #1890ff;
+.btn-delete:hover {
+    background-color: #ff7875;
+    transform: translateY(-1px);
+}
+
+.btn-delete:active {
+    background-color: #d9363e;
 }
 
 /* ตารางหลัก */
@@ -90,14 +72,37 @@
     background: #f0f7ff;
 }
 
-/* สถานะ Badge */
+/* --- สถานะ Badge (ปรับปรุงใหม่) --- */
 .status-badge {
-    background: #f6ffed;
-    color: #52c41a;
-    border: 1px solid #b7eb8f;
-    padding: 2px 10px;
+    padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    border: 1px solid;
+    text-align: center;
+    min-width: 80px;
+}
+
+/* สีเขียว สำหรับ Check-in */
+.status-badge.check-in {
+    background: #f6ffed;
+    color: #52c41a;
+    border-color: #b7eb8f;
+}
+
+/* สีเทา สำหรับ Inactive (แก้เป็นสีเทาตามที่ต้องการ) */
+.status-badge.inactive {
+    background: #f5f5f5;
+    color: #8c8c8c;
+    border-color: #d9d9d9;
+}
+
+/* สีส้ม สำหรับ Booked (แก้เป็นสีส้มตามที่ต้องการ) */
+.status-badge.booked {
+    background: #fff7e6;
+    color: #fa8c16;
+    border-color: #ffd591;
 }
 
 /* --- หน้า Detail --- */
@@ -152,7 +157,7 @@
     border-bottom: 1px solid #f0f0f0;
 }
 
-/* สีแถวตามสถานะ */
+/* สีแถวตามสถานะในหน้า Detail */
 .row-green { background-color: #f6ffed !important; }
 .row-orange { background-color: #fff7e6 !important; }
 .row-white { background-color: #ffffff !important; }
@@ -173,19 +178,19 @@
     text-decoration: underline;
 }
 
-/* หัวข้อ Sort ที่กดได้ */
+/* หัวข้อ Sort */
 .sortable-header {
-    cursor: pointer !important; /* บังคับให้เป็นรูปมือ */
+    cursor: pointer !important;
     user-select: none;
     transition: all 0.2s;
 }
 
 .sortable-header:hover {
     color: #1890ff;
-    background-color: #f0f0f0; /* ไฮไลท์หัวตารางตอนเอาเมาส์จี้ */
+    background-color: #f0f0f0;
 }
 
-/* --- ส่วนปรับปรุง Month Pagination ให้ดู Professional --- */
+/* ส่วนเดือน (Pagination) */
 .history-header {
     display: flex;
     justify-content: space-between;
@@ -196,12 +201,6 @@
     border-bottom: 2px solid #f0f0f0;
 }
 
-.history-header h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #262626;
-}
-
 .month-pagination {
     display: flex;
     align-items: center;
@@ -209,7 +208,6 @@
     border: 1px solid #d9d9d9;
     border-radius: 6px; 
     padding: 2px;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.015);
 }
 
 .btn-nav {
@@ -220,7 +218,7 @@
     height: 32px;
     border: none;
     background: transparent;
-    cursor: pointer; /* เมาส์รูปมือ */
+    cursor: pointer;
     font-size: 16px;
     color: #8c8c8c;
     border-radius: 4px;
@@ -232,10 +230,6 @@
     color: #1890ff;
 }
 
-.btn-nav:active {
-    background-color: #e6f7ff;
-}
-
 .current-month {
     font-weight: 600;
     font-size: 14px;
@@ -244,4 +238,38 @@
     min-width: 150px; 
     text-align: center;
     user-select: none;
+}
+
+/* สีแดง สำหรับ Late (เพิ่มใหม่) */
+.status-badge.late {
+    background: #fff1f0;
+    color: #f5222d;
+    border-color: #ffa39e;
+}
+
+/* ปรับปรุง CSS เดิมสำหรับ Badge */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    border: 1px solid;
+    text-align: center;
+    min-width: 85px;
+    text-transform: capitalize;
+}
+
+/* สีสำหรับสถานะอื่นๆ ที่เหลือ */
+.status-badge.check-in { background: #f6ffed; color: #52c41a; border-color: #b7eb8f; }
+.status-badge.booked { background: #fff7e6; color: #fa8c16; border-color: #ffd591; }
+.status-badge.inactive { background: #f5f5f5; color: #8c8c8c; border-color: #d9d9d9; }
+
+/* ปุ่ม Delete เมื่อใช้งานไม่ได้ */
+.btn-delete:disabled {
+    background-color: #f5f5f5;
+    color: #bfbfbf;
+    border-color: #d9d9d9;
+    cursor: not-allowed;
+    opacity: 1;
 }
