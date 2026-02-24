@@ -25,3 +25,33 @@ input.read-only-field:focus {
     border-color: #1890ff;
     background: white;
 }
+
+.btn-select-seat {
+  width: 100%;              /* ยาวเต็มช่องเหมือน date */
+  height: 48px;             /* ปรับตามความสูง date ถ้าต่างแก้เลขนี้ */
+  background-color: #22c55e !important; 
+  color: white !important;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn-select-seat:hover {
+  background-color: #16a34a !important;
+}
+
+.btn-icon {
+  padding: 8px 18px;     /* เพิ่มพื้นที่กด */
+  font-size: 14px;
+  border-radius: 6px;
+  min-width: 90px;       /* กันปุ่มหด */
+}
+
+.btn-add {
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  min-width: 110px;      /* ปุ่มหลักใหญ่กว่าเล็กน้อย */
+}

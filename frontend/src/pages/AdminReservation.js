@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/AdminReservation.css";
 
 export default function AdminReservation() {
   const [allBookings, setAllBookings] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const navigate = useNavigate();
 
   // ข้อมูล Mockup สำหรับการจองที่แอดมินต้องดูแล
   const MOCK_RESERVATIONS = [
@@ -90,9 +92,18 @@ export default function AdminReservation() {
                 <input type="date" className="read-only-field" style={{ background: "white", width: "100%" }} defaultValue={editingBooking?.date} />
               </div>
               <div className="info-group">
-                <label>ที่นั่ง</label>
-                <input className="read-only-field" style={{ background: "white", width: "100%" }} defaultValue={editingBooking?.seat} />
-              </div>
+                <label style={{ visibility: "hidden" }}>Seat</label>
+              <button
+                type="button"
+                className="btn-select-seat"
+                onClick={() => {
+                setIsModalOpen(false);
+                navigate("/seatmap");
+            }}
+          >
+            เลือกที่นั่ง
+          </button>
+        </div>
             </div>
             <div style={{ marginTop: "30px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)}>ยกเลิก</button>
