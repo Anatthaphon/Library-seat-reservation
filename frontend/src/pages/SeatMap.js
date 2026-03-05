@@ -115,26 +115,22 @@ if (loading) {
     );
   }
   const handleAddSeat = async (kind, name) => {
-    if (!name || !name.trim()) {
+
+  if (!name || !name.trim()) {
     alert("กรุณากรอกชื่อโต๊ะก่อนเพิ่ม");
     return;
   }
 
-  
-
-  // kind: "A" | "B" | "C" | "deco"
   const isDeco = kind === "deco";
-  
-
 
   const payload = {
     mapId: "main",
-    type: isDeco ? "block" : "seat",        // ✅ deco เป็น block (กดไม่ได้)
-    zone: isDeco ? null : kind,            // ✅ A/B/C
+    type: isDeco ? "block" : "seat",
+    zone: isDeco ? null : kind,
     size: "normal",
     pos: { left: 120, top: 120 },
     meta: {
-      name: name.trim(), // 👈 บังคับชื่อ
+      name: name.trim(),
     },
     isActive: true,
   };
@@ -154,9 +150,28 @@ if (loading) {
   }
 
   const created = await res.json();
+
+  // ✅ บันทึก history
+  await fetch("http://localhost:3001/api/seatmap/history", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      adminName: user?.username || "admin",
+      actionType: "ADD",
+      seatId: created._id,
+      before: null,
+      after: created.meta?.name
+    })
+  });
+
+  // ✅ เพิ่มใน state
   setItems((prev) => [...prev, created]);
+
+  // ✅ ปิด modal
   setShowAddModal(false);
-  setAddName(""); // ✅ เคลียร์ช่อง
+  setAddName("");
 };
 
 
@@ -165,6 +180,9 @@ const handleDeleteSelected = async () => {
     alert("ยังไม่ได้เลือกโต๊ะที่จะลบ");
     return;
   }
+
+  // หาโต๊ะก่อนลบ เพื่อเอาชื่อไปเก็บ history
+  const deletedSeat = items.find(x => x._id === selectedItemId);
 
   const res = await fetch(`http://localhost:3001/api/seatmap/items/${selectedItemId}`, {
     method: "DELETE",
@@ -177,6 +195,21 @@ const handleDeleteSelected = async () => {
     alert("ลบไม่ได้ (ต้องเป็น admin)");
     return;
   }
+
+  // บันทึก History
+  await fetch("http://localhost:3001/api/seatmap/history", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      adminName: user?.username || "admin",
+      actionType: "DELETE",
+      seatId: selectedItemId,
+      before: deletedSeat?.meta?.name,
+      after: null
+    })
+  });
 
   setItems((prev) => prev.filter((x) => x._id !== selectedItemId));
   setSelectedItemId(null);
@@ -273,22 +306,42 @@ const startDrag = (e, it) => {
   };
 
   const handleMouseUp = async () => {
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
+  document.removeEventListener("mousemove", handleMouseMove);
+  document.removeEventListener("mouseup", handleMouseUp);
 
-    try {
-      await fetch(`http://localhost:3001/api/seatmap/items/${it._id}`, {
-        method: "PATCH",
+  try {
+    const res = await fetch(`http://localhost:3001/api/seatmap/items/${it._id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-role": localStorage.getItem("role"),
+      },
+      body: JSON.stringify({ pos: latestPos }),
+    });
+
+    if (res.ok) {
+
+      // บันทึก History
+      await fetch("http://localhost:3001/api/seatmap/history", {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-role": localStorage.getItem("role"),
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ pos: latestPos }),
+        body: JSON.stringify({
+          adminName: user?.username || "admin",
+          actionType: "MOVE",
+          seatId: it._id,
+          before: `${startLeft}, ${startTop}`,
+          after: `${latestPos.left}, ${latestPos.top}`
+        })
       });
-    } catch (err) {
-      console.error("Save position error:", err);
+
     }
-  };
+
+  } catch (err) {
+    console.error("Save position error:", err);
+  }
+};
 
   document.addEventListener("mousemove", handleMouseMove);
   document.addEventListener("mouseup", handleMouseUp);

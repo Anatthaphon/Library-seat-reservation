@@ -361,11 +361,11 @@ const Planning = () => {
   };
 
   const getColorByDay = (dateObj) => {
-    const d = new Date(
-  dateObj.getFullYear(),
-  dateObj.getMonth(),
-  dateObj.getDate()
-).getDay();
+  const d = new Date(
+    dateObj.getFullYear(),
+    dateObj.getMonth(),
+    dateObj.getDate()
+  ).getDay();
 
     const dayColors = {
       1: '#facc15',

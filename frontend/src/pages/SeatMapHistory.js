@@ -115,7 +115,7 @@ export default function SeatMapHistory() {
               <th>Date</th>
               <th>Admin</th>
               <th>Action Type</th>
-              <th>Seat ID</th>
+              <th>Seat Name</th>
               <th>Before</th>
               <th>After</th>
               <th>Details</th>
@@ -135,7 +135,7 @@ export default function SeatMapHistory() {
                 <td>{formatDate(log.createdAt)}</td>
                 <td>{log.adminName}</td>
                 <td>{log.actionType}</td>
-                <td>{log.seatId}</td>
+                <td>{log.after || log.before}</td>
                 <td>{log.before || "-"}</td>
                 <td>{log.after || "-"}</td>
                 <td>
