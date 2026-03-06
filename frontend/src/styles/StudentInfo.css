@@ -273,3 +273,32 @@
     cursor: not-allowed;
     opacity: 1;
 }
+
+.search-wrapper {
+  flex: 1;
+  margin: 0 20px;
+  max-width: 400px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* ปรับ Header ให้ Search อยู่ตรงกลางระหว่างหัวข้อกับปุ่มลบ */
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
