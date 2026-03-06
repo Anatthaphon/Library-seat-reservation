@@ -1,28 +1,59 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // อย่าลืมติดตั้ง axios: npm install axios
 import "../styles/AdminReservation.css";
+
+const API_BASE_URL = "http://localhost:3001/api/schedules";
 
 export default function AdminReservation() {
   const [allBookings, setAllBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const navigate = useNavigate();
 
-  // ข้อมูล Mockup สำหรับการจองที่แอดมินต้องดูแล
-  const MOCK_RESERVATIONS = [
-    { id: 101, name: "ตัั้ง", studentId: "6612345678", seat: "A1", date: "2026-02-17", time: "13:00-14:00", status: "Active" },
-    { id: 102, name: "แป้ง", studentId: "6512345678", seat: "A4", date: "2026-02-18", time: "10:00-12:00", status: "Active" },
-    { id: 103, name: "โบ๊ท", studentId: "6712345678", seat: "B5", date: "2026-02-17", time: "09:00-11:00", status: "Cancelled" },
-  ];
+  // --- 1. ฟังก์ชันดึงข้อมูลจาก Backend ---
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_BASE_URL);
+      
+      // Mapping ข้อมูลจาก MongoDB ให้เข้ากับรูปแบบ Table
+      const mappedBookings = response.data.map(b => ({
+        id: b._id, // MongoDB ใช้ _id
+        name: b.title || "จองที่นั่ง",
+        studentId: b.instructor?.username || "N/A", // สมมติว่า studentId เก็บใน username ของ instructor
+        seat: b.room || "-",
+        date: new Date(b.date).toLocaleDateString('en-CA'), // Format: YYYY-MM-DD
+        time: b.timeSlot ? `${b.timeSlot.startTime}-${b.timeSlot.endTime}` : "N/A",
+        status: b.status === "booked" ? "Active" : "Cancelled"
+      }));
+
+      setAllBookings(mappedBookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      alert("ไม่สามารถดึงข้อมูลการจองได้");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // ในอนาคตดึงจาก localStorage หรือ API
-    setAllBookings(MOCK_RESERVATIONS);
+    fetchBookings();
   }, []);
 
-  const handleCancel = (id) => {
-    if (window.confirm("คุณแน่ใจใช่ไหมที่จะยกเลิกการจองนี้?")) {
-      setAllBookings(prev => prev.map(b => b.id === id ? { ...b, status: "Cancelled" } : b));
+  // --- 2. ฟังก์ชันยกเลิกการจอง (ลบออกจาก DB) ---
+  const handleCancel = async (id) => {
+    if (window.confirm("คุณแน่ใจใช่ไหมที่จะยกเลิกการจองนี้? ข้อมูลจะถูกลบออกจากระบบ")) {
+      try {
+        await axios.delete(`${API_BASE_URL}/${id}`);
+        // อัปเดต UI หลังจากลบสำเร็จ
+        setAllBookings(prev => prev.filter(b => b.id !== id));
+        alert("ยกเลิกการจองสำเร็จ");
+      } catch (error) {
+        console.error("Error deleting booking:", error);
+        alert("ไม่สามารถยกเลิกการจองได้");
+      }
     }
   };
 
@@ -31,12 +62,14 @@ export default function AdminReservation() {
     setIsModalOpen(true);
   };
 
+  if (loading) return <div style={{ padding: "20px" }}>กำลังโหลดข้อมูลการจอง...</div>;
+
   return (
     <div className="student-list-container">
       <div className="list-header">
         <div>
           <h1>Admin Reservation Management</h1>
-          <p style={{ color: "#8c8c8c" }}>จัดการ แก้ไข หรือยกเลิกการจองของนิสิตได้ที่นี่</p>
+          <p style={{ color: "#8c8c8c" }}>จัดการ แก้ไข หรือยกเลิกการจองของนิสิตได้ที่นี่ (Backend Connected)</p>
         </div>
         <div className="header-actions">
           <button className="btn-add" onClick={() => handleOpenModal()}>+ จองให้นิสิต</button>
@@ -56,28 +89,32 @@ export default function AdminReservation() {
           </tr>
         </thead>
         <tbody>
-          {allBookings.map((b) => (
-            <tr key={b.id}>
-              <td>{b.name}</td>
-              <td>{b.studentId}</td>
-              <td><strong>{b.seat}</strong></td>
-              <td>{b.date}</td>
-              <td>{b.time}</td>
-              <td>
-                <span className={`status-badge ${b.status === 'Cancelled' ? 'inactive' : 'check-in'}`}>
-                  {b.status}
-                </span>
-              </td>
-              <td style={{ textAlign: "center" }}>
-                <button className="btn-nav" style={{ fontSize: "14px", width: "auto", padding: "0 10px" }} onClick={() => handleOpenModal(b)}>แก้ไข</button>
-                <button className="btn-nav" style={{ fontSize: "14px", width: "auto", padding: "0 10px", color: "#ff4d4f" }} onClick={() => handleCancel(b.id)}>ยกเลิก</button>
-              </td>
-            </tr>
-          ))}
+          {allBookings.length > 0 ? (
+            allBookings.map((b) => (
+              <tr key={b.id}>
+                <td>{b.name}</td>
+                <td>{b.studentId}</td>
+                <td><strong>{b.seat}</strong></td>
+                <td>{b.date}</td>
+                <td>{b.time}</td>
+                <td>
+                  <span className={`status-badge ${b.status === 'Cancelled' ? 'inactive' : 'check-in'}`}>
+                    {b.status}
+                  </span>
+                </td>
+                <td style={{ textAlign: "center" }}>
+                  <button className="btn-nav" style={{ fontSize: "14px", width: "auto", padding: "0 10px" }} onClick={() => handleOpenModal(b)}>แก้ไข</button>
+                  <button className="btn-nav" style={{ fontSize: "14px", width: "auto", padding: "0 10px", color: "#ff4d4f" }} onClick={() => handleCancel(b.id)}>ลบ</button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr><td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>ไม่พบข้อมูลการจอง</td></tr>
+          )}
         </tbody>
       </table>
 
-      {/* Modal แบบง่ายๆ สำหรับ Add/Edit */}
+      {/* Modal สำหรับ Add/Edit */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="info-card" style={{ width: "500px", position: "relative" }}>
@@ -93,21 +130,21 @@ export default function AdminReservation() {
               </div>
               <div className="info-group">
                 <label style={{ visibility: "hidden" }}>Seat</label>
-              <button
-                type="button"
-                className="btn-select-seat"
-                onClick={() => {
-                setIsModalOpen(false);
-                navigate("/seatmap");
-            }}
-          >
-            เลือกที่นั่ง
-          </button>
-        </div>
+                <button
+                  type="button"
+                  className="btn-select-seat"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    navigate("/seatmap");
+                  }}
+                >
+                  เลือกที่นั่ง
+                </button>
+              </div>
             </div>
             <div style={{ marginTop: "30px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)}>ยกเลิก</button>
-              <button className="btn-add" onClick={() => setIsModalOpen(false)}>บันทึกข้อมูล</button>
+              <button className="btn-add" onClick={() => setIsModalOpen(false)}>บันทึกข้อมูล (ยังไม่เชื่อม API Update)</button>
             </div>
           </div>
         </div>
