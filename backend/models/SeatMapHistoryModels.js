@@ -5,6 +5,7 @@ const SeatMapHistorySchema = new mongoose.Schema({
   adminName: String,
   actionType: String,
   seatId: String,
+  seatName: String,   // ⭐ เพิ่มบรรทัดนี้
   before: String,
   after: String,
 

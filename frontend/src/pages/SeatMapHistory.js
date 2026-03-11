@@ -135,9 +135,12 @@ export default function SeatMapHistory() {
                 <td>{formatDate(log.createdAt)}</td>
                 <td>{log.adminName}</td>
                 <td>{log.actionType}</td>
-                <td>{log.after || log.before}</td>
+
+                <td>{log.seatName || "-"}</td>   {/* Seat Name */}
+
                 <td>{log.before || "-"}</td>
                 <td>{log.after || "-"}</td>
+
                 <td>
                   <button className="view-btn">
                     View

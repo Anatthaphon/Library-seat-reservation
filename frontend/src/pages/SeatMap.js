@@ -153,18 +153,17 @@ if (loading) {
 
   // ✅ บันทึก history
   await fetch("http://localhost:3001/api/seatmap/history", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      adminName: user?.username || "admin",
-      actionType: "ADD",
-      seatId: created._id,
-      before: null,
-      after: created.meta?.name
-    })
-  });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    adminName: user?.username || "admin",
+    actionType: "ADD", // การกระทำคือเพิ่มโต๊ะ แก้แล้ว
+    seatId: created._id,
+    seatName: created.meta?.name,
+    before: "-",
+    after: `${created.pos.left}, ${created.pos.top}`
+  })
+});
 
   // ✅ เพิ่มใน state
   setItems((prev) => [...prev, created]);
@@ -198,18 +197,17 @@ const handleDeleteSelected = async () => {
 
   // บันทึก History
   await fetch("http://localhost:3001/api/seatmap/history", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      adminName: user?.username || "admin",
-      actionType: "DELETE",
-      seatId: selectedItemId,
-      before: deletedSeat?.meta?.name,
-      after: null
-    })
-  });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    adminName: user?.username || "admin",
+    actionType: "DELETE", // การกระทำคือการลบโต๊ะ แก้รอบ2
+    seatId: deletedSeat?._id,
+    seatName: deletedSeat?.meta?.name,
+    before: `${deletedSeat?.pos.left}, ${deletedSeat?.pos.top}`,
+    after: "-"
+  })
+});
 
   setItems((prev) => prev.filter((x) => x._id !== selectedItemId));
   setSelectedItemId(null);
@@ -331,6 +329,7 @@ const startDrag = (e, it) => {
           adminName: user?.username || "admin",
           actionType: "MOVE",
           seatId: it._id,
+          seatName: it.meta?.name,   // ⭐ ต้องมี
           before: `${startLeft}, ${startTop}`,
           after: `${latestPos.left}, ${latestPos.top}`
         })

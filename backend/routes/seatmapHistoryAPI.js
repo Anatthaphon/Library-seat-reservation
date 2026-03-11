@@ -10,6 +10,7 @@ router.post("/", async (req, res) => {
       adminName: req.body.adminName,
       actionType: req.body.actionType,
       seatId: req.body.seatId,
+      seatName: req.body.seatName,   // ⭐ เพิ่ม
       before: req.body.before,
       after: req.body.after,
       createdAt: new Date()
