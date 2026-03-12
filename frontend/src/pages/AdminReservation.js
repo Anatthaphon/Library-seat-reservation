@@ -21,8 +21,6 @@ export default function AdminReservation() {
   
   const navigate = useNavigate();
   const location = useLocation();
-
-  // ดึงวันที่วันนี้ในรูปแบบ YYYY-MM-DD สำหรับใช้กับ attribute "min"
   const todayStr = new Date().toISOString().split('T')[0];
 
   const fetchBookings = async () => {
@@ -31,18 +29,19 @@ export default function AdminReservation() {
       const response = await axios.get(API_BASE_URL);
       const mappedBookings = response.data.map(b => {
         const calculated = calculateStatus(b.date, b.timeSlot, b.status);
-        let displayTime = "N/A";
-        if (b.timeSlot && typeof b.timeSlot === 'object') {
-          displayTime = `${b.timeSlot.startTime}-${b.timeSlot.endTime}`;
-        }
         return {
           id: b._id,
-          name: b.title || "Seat Reservation",
-          studentId: b.instructor?.username || "N/A",
-          seat: b.room || "-",
+          name: b.title || "N/A", 
+          studentId: b.instructor?.username || "N/A", 
+          // เก็บทั้ง ID จริง (roomId) และชื่อที่โชว์ (seat)
+          roomId: b.room && typeof b.room === 'object' ? b.room._id : b.room,
+          seat: b.room && typeof b.room === 'object' 
+                ? (b.room.meta?.name || b.room._id) 
+                : (b.room || "-"),
           date: new Date(b.date).toLocaleDateString('en-CA'),
-          time: displayTime,
-          status: calculated
+          time: b.timeSlot ? `${b.timeSlot.startTime}-${b.timeSlot.endTime}` : "N/A",
+          status: calculated,
+          rawTimeSlot: b.timeSlot // เก็บก้อนดิบไว้ใช้ตอนแก้ไข
         };
       });
       setAllBookings(mappedBookings.sort((a, b) => new Date(b.date) - new Date(a.date)));
@@ -55,7 +54,15 @@ export default function AdminReservation() {
       setIsModalOpen(true); 
       if (location.state.id) {
         const original = allBookings.find(b => b.id === location.state.id);
-        if (original) setEditingBooking(original);
+        if (original) {
+          setEditingBooking(original);
+          setFormData({
+            name: original.name,
+            date: original.date,
+            startTime: original.time.split('-')[0],
+            duration: location.state.duration || "1"
+          });
+        }
       } else {
         setFormData({
           name: location.state.name || "",
@@ -87,32 +94,48 @@ export default function AdminReservation() {
   };
 
   const handleSave = async () => {
-    if (!selectedSeatFromMap || (!editingBooking && !formData.name)) {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!selectedSeatFromMap || !formData.name) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
       return;
     }
+
     const startHour = parseInt(formData.startTime);
     const endHour = startHour + parseInt(formData.duration);
     const endTimeStr = `${endHour < 10 ? '0' + endHour : endHour}:00`;
 
+    // ค้นหาข้อมูลเดิมเพื่อดึง Room ID ที่ถูกต้องส่งกลับไป (ป้องกัน Error 400)
+    const originalBooking = allBookings.find(b => b.id === editingBooking?.id);
+    const roomToSave = (selectedSeatFromMap === originalBooking?.seat) 
+                       ? originalBooking.roomId 
+                       : selectedSeatFromMap;
+
     const payload = {
-      title: editingBooking ? editingBooking.name : formData.name,
-      date: editingBooking ? editingBooking.date : formData.date,
-      room: selectedSeatFromMap,
+      title: formData.name,
+      date: formData.date,
+      room: roomToSave, 
       timeSlot: {
-        startTime: editingBooking ? editingBooking.time.split('-')[0] : formData.startTime,
-        endTime: editingBooking ? editingBooking.time.split('-')[1] : endTimeStr
+        startTime: formData.startTime,
+        endTime: endTimeStr
       },
       status: "booked"
     };
 
     try {
-      if (editingBooking?.id) await axios.put(`${API_BASE_URL}/${editingBooking.id}`, payload);
-      else await axios.post(API_BASE_URL, payload);
+      if (editingBooking?.id) {
+        await axios.put(`${API_BASE_URL}/${editingBooking.id}`, payload);
+      } else {
+        // สำหรับเพิ่มใหม่ ถ้า backend บังคับใส่ instructor
+        payload.instructor = { username: user.username || "admin" };
+        await axios.post(API_BASE_URL, payload);
+      }
       alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
       setIsModalOpen(false);
       fetchBookings();
-    } catch (err) { alert("ไม่สามารถบันทึกข้อมูลได้"); }
+    } catch (err) { 
+      console.error("Save Error Details:", err.response?.data);
+      alert(err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลได้ (Error 400: ข้อมูลไม่ถูกต้อง)"); 
+    }
   };
 
   const handleCancel = async (id) => {
@@ -129,8 +152,8 @@ export default function AdminReservation() {
       state: {
         returnTo: "/admin-reservation",
         id: editingBooking?.id,
-        name: editingBooking ? editingBooking.name : formData.name,
-        date: editingBooking ? editingBooking.date : formData.date,
+        name: formData.name,
+        date: formData.date,
         startTime: formData.startTime,
         duration: formData.duration
       }
@@ -145,35 +168,18 @@ export default function AdminReservation() {
     }
   };
 
-  // สไตล์มินิมอลตามเรฟ
   const minimalInputStyle = {
-    height: "38px",
-    borderRadius: "8px",
-    border: "1px solid #dcdcdc",
-    padding: "0 12px",
-    fontSize: "14px",
-    color: "#333",
-    backgroundColor: "#fff",
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box"
+    height: "38px", borderRadius: "8px", border: "1px solid #dcdcdc",
+    padding: "0 12px", fontSize: "14px", color: "#333", backgroundColor: "#fff",
+    outline: "none", width: "100%", boxSizing: "border-box"
   };
 
-  const minimalSelectStyle = {
-    ...minimalInputStyle,
-    cursor: "pointer",
-    backgroundColor: "#fcfcfc",
-    appearance: "auto" 
-  };
+  const minimalSelectStyle = { ...minimalInputStyle, cursor: "pointer", backgroundColor: "#fcfcfc", appearance: "auto" };
 
-  // Logic สำหรับกรองเวลาที่จองได้
   const getAvailableHours = () => {
     const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-    const now = new Date();
-    const currentHour = now.getHours();
-    
-    // ถ้าเป็นวันที่ปัจจุบัน ให้กรองเอาเฉพาะชั่วโมงที่มากกว่าเวลาปัจจุบัน
     if (formData.date === todayStr) {
+      const currentHour = new Date().getHours();
       return hours.filter(h => h > currentHour);
     }
     return hours;
@@ -213,7 +219,17 @@ export default function AdminReservation() {
               <td>{b.time}</td>
               <td><span className={`status-badge ${getStatusClass(b.status)}`}>{b.status}</span></td>
               <td style={{ textAlign: "center" }}>
-                <button className="btn-nav" onClick={() => { setEditingBooking(b); setSelectedSeatFromMap(b.seat); setIsModalOpen(true); }}>แก้ไข</button>
+                <button className="btn-nav" onClick={() => { 
+                  setEditingBooking(b); 
+                  setSelectedSeatFromMap(b.seat);
+                  setFormData({
+                    name: b.name,
+                    date: b.date,
+                    startTime: b.time.split('-')[0],
+                    duration: "1"
+                  });
+                  setIsModalOpen(true); 
+                }}>แก้ไข</button>
                 <button className="btn-nav" style={{ color: "#ff4d4f" }} onClick={() => handleCancel(b.id)}>ลบ</button>
               </td>
             </tr>
@@ -232,11 +248,9 @@ export default function AdminReservation() {
                 <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>รหัสนิสิต / ชื่อ</label>
                 <input 
                   type="text"
-                  placeholder="ระบุตัวตน"
                   style={minimalInputStyle}
-                  value={editingBooking ? editingBooking.name : formData.name}
+                  value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  disabled={!!editingBooking}
                 />
               </div>
 
@@ -253,10 +267,9 @@ export default function AdminReservation() {
                 <input 
                   type="date" 
                   style={minimalInputStyle}
-                  min={todayStr} // [BLOCK] ป้องกันการเลือกวันย้อนหลัง
-                  value={editingBooking ? editingBooking.date : formData.date}
+                  min={todayStr}
+                  value={formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  disabled={!!editingBooking}
                 />
               </div>
 
@@ -283,7 +296,6 @@ export default function AdminReservation() {
                   style={minimalSelectStyle}
                   value={formData.duration} 
                   onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                  disabled={getAvailableHours().length === 0}
                 >
                   <option value="1">1 ชม.</option>
                   <option value="2">2 ชม.</option>
@@ -297,16 +309,11 @@ export default function AdminReservation() {
               <button 
                 className="btn-add" 
                 onClick={handleSave} 
-                disabled={getAvailableHours().length === 0 && !editingBooking}
                 style={{ 
-                  height: "40px", 
-                  padding: "0 25px", 
-                  background: (getAvailableHours().length === 0 && !editingBooking) ? "#ccc" : "#22c55e", 
-                  color: "#fff", 
-                  border: "none", 
-                  borderRadius: "8px", 
-                  cursor: (getAvailableHours().length === 0 && !editingBooking) ? "not-allowed" : "pointer", 
-                  fontWeight: "500" 
+                  height: "40px", padding: "0 25px", 
+                  background: "#22c55e", 
+                  color: "#fff", border: "none", borderRadius: "8px", 
+                  cursor: "pointer", fontWeight: "500" 
                 }}
               >
                 บันทึกข้อมูล
