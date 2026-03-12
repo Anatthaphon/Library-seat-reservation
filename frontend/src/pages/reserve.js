@@ -12,10 +12,40 @@ export default function Reserve() {
   
   const MAX_CANCEL_PER_MONTH = 100; 
 
-  const [bookings, setBookings] = useState(() => {
-    const saved = localStorage.getItem("bookings");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [bookings,setBookings] = useState([]);
+  
+
+  const loadBookings = async () => {
+
+    try {
+
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      const res = await fetch(
+        `http://localhost:3001/api/schedules/reservations?userId=${user._id || user.id}`
+      );
+
+      const data = await res.json();
+
+      // ⭐ ป้องกันไม่ให้ bookings พัง
+      setBookings(
+        (Array.isArray(data) ? data : data.data || []).map(b => ({
+          ...b,
+          startTime: parseInt(b.timeSlot?.startTime),
+          endTime: parseInt(b.timeSlot?.endTime)
+        }))
+      );
+
+    } catch (err) {
+      console.error("loadBookings error:", err);
+      setBookings([]);
+    }
+
+  };
+
+  useEffect(()=>{
+    loadBookings();
+  },[]);
 
   const [cancelHistory, setCancelHistory] = useState(() => {
     const saved = localStorage.getItem("cancelHistory");
@@ -30,13 +60,9 @@ export default function Reserve() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("bookings", JSON.stringify(bookings));
-  }, [bookings]);
 
   useEffect(() => {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
@@ -64,17 +90,25 @@ export default function Reserve() {
         : incoming.date,
   };
 
-  setDraftBookings((prev) => {
-    const index = prev.findIndex(b => b.id === newBooking.id);
+  const newDraft = {
+  ...newBooking,
+  seatItemId: newBooking.seatId
+};
 
-    if (index !== -1) {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], ...newBooking };
-      return updated;
-    }
+setDraftBookings((prev) => {
+  const index = prev.findIndex(b =>
+    new Date(b.date).toDateString() === new Date(newDraft.date).toDateString() &&
+    b.startTime === newDraft.startTime
+  );
 
-    return [...prev, newBooking];
-  });
+  if (index !== -1) {
+    const updated = [...prev];
+    updated[index] = { ...updated[index], ...newDraft };
+    return updated;
+  }
+
+  return [...prev, newDraft];
+});
 
   window.history.replaceState({}, document.title);
 }, [location.state]);
@@ -119,6 +153,10 @@ export default function Reserve() {
 });
 
 useEffect(() => {
+  localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
+}, [draftBookings]);
+
+useEffect(() => {
   if (location.state?.drafts) {
 
     const newDrafts = location.state.drafts.map(d => ({
@@ -148,13 +186,6 @@ useEffect(() => {
 }, [location.state]);
 
 
-
-
-  useEffect(() => {
-  localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
-}, [draftBookings]);
-
-
   // ✅ แก้ไข: แสดงแถวแค่ 9:00 - 17:00 (แถวสุดท้ายคือ 17:00-18:00)
   const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
 
@@ -171,7 +202,10 @@ useEffect(() => {
   };
 
   const handleConfirmDelete = () => {
-    setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
+    setBookings((prev) => prev.filter((b) => {
+    const bookingId = b._id || b.id;
+    return bookingId !== (selectedBooking._id || selectedBooking.id);
+  }));
     setCancelHistory((prev) => [...prev, { date: new Date().toISOString() }]);
     setShowCancelPopup(false);
     setSelectedBooking(null);
@@ -183,6 +217,13 @@ useEffect(() => {
   return;
 }
 
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) {
+  alert("กรุณาเข้าสู่ระบบก่อน");
+  return;
+}
+
   try {
     const res = await fetch("http://localhost:3001/api/schedules/bulk", {
       method: "POST",
@@ -191,13 +232,13 @@ useEffect(() => {
       },
       body: JSON.stringify({
         bookings: draftBookings.map(b => ({
+          userId: user._id || user.id,
           date: b.date,
           seatItemId: b.seatItemId || b.seatId,
-          subject: b.subject || "",
-          startTime: b.startTime,
-          endTime: b.endTime
+          startTime: `${b.startTime}:00`,
+          endTime: `${b.endTime}:00`
         }))
-        })
+      })
 
     });
     
@@ -205,10 +246,9 @@ useEffect(() => {
 
     if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
 
-    // ย้าย draft ไป bookings จริง
-    setBookings(prev => [...prev, ...draftBookings]);
+    await loadBookings();
 
-    // ล้าง draft
+    // ลบ draft state อย่างเดียว
     setDraftBookings([]);
     localStorage.removeItem("draftBookings");
 
@@ -219,7 +259,10 @@ useEffect(() => {
   }
 };
 const handleDeleteDraft = (id) => {
-  setDraftBookings(prev => prev.filter(b => b.id !== id));
+  setDraftBookings(prev => prev.filter(b => {
+    const bookingId = b._id || b.id;
+    return bookingId !== id;
+  }));
 };
 
 
@@ -258,7 +301,10 @@ const handleDeleteDraft = (id) => {
             <div className="hour-row" key={hour}>
               <div className="time-col">{hour}:00</div>
               {days.map((day) => {
-                const allCalendarBookings = [...bookings, ...draftBookings];
+                const allCalendarBookings = [
+                  ...(Array.isArray(bookings) ? bookings : []),
+                  ...(Array.isArray(draftBookings) ? draftBookings : [])
+                ];
                 const disabled = isSlotDisabled(day, hour);
                 const isAlreadyBooked = allCalendarBookings.some(b => {
                   const bDate = new Date(b.date).toDateString();
@@ -278,11 +324,14 @@ const handleDeleteDraft = (id) => {
                     }}
                   >
                     {startingBookings.map((b) => {
-                      const isDraft = draftBookings.some(d => d.id === b.id);
+                      const isDraft = draftBookings.some(d => {
+                        const bookingId = b._id || b.id;
+                        return d.id === bookingId;
+                      });
 
                       return (
                         <BookingBlock
-                          key={b.id}
+                          key={b._id || b.id}
                           booking={b}
                           isDraft={isDraft}
                           past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
@@ -339,15 +388,24 @@ const handleDeleteDraft = (id) => {
     onClose={() => setDraft(null)}
 
     onDelete={() => {
-      setDraftBookings(prev => prev.filter(b => b.id !== draft.id));
+      setDraftBookings(prev =>
+        prev.filter(b => {
+          const bookingId = b._id || b.id;
+          return bookingId !== draft.id;
+        })
+      );
       setDraft(null);
     }}
 
     onAccept={(final) => {
       const newDraft = {
         ...final,
-        seatId: final.seatId,
-        date: final.date.toISOString(),
+        seatItemId: final.seatId, 
+        date: new Date(
+          final.date.getFullYear(),
+          final.date.getMonth(),
+          final.date.getDate()
+        ),
         id: Date.now() + Math.random()
       };
 
