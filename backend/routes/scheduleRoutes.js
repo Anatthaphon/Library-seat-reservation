@@ -7,6 +7,8 @@ const Schedule = require('../models/Schedule');
 // Get all schedules
 router.get('/', scheduleController.getAllSchedules);
 
+router.get("/reservations", scheduleController.getReservations);
+
 // Get schedules by date range
 router.get('/range/:startDate/:endDate', scheduleController.getSchedulesByDateRange);
 

@@ -1,91 +1,105 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const scheduleSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
+
+  userId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"User",
+    required:true
   },
-  courseCode: {
-    type: String,
-    trim: true
+
+  title:{
+    type:String,
+    required:true,
+    trim:true
   },
-  instructor: { 
-    type: String, 
-    required: false 
+
+  date:{
+    type:Date,
+    required:true
   },
-  instructorName: {
-    type: String,
-    trim: true
+
+  dayOfWeek:{
+    type:Number,
+    required:true
   },
-  date: {
-    type: Date,
-    required: true
-  },
-  dayOfWeek: {
-    type: Number, // 0-6 (Sunday to Saturday)
-    required: true
-  },
-  timeSlot: {
-    startTime: {
-      type: String,
-      required: true
+
+  timeSlot:{
+    startTime:{
+      type:String,
+      required:true
     },
-    endTime: {
-      type: String,
-      required: true
+    endTime:{
+      type:String,
+      required:true
     }
   },
-  duration: {
-    type: Number, // in hours
-    default: 1
+
+  duration:{
+    type:Number,
+    default:1
   },
-  room: {
-    type: String,
-    trim: true
+
+  seatItemId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"SeatmapItem",
+    required:function(){
+      return this.type === "reservation";
+    }
   },
-  color: {
-    type: String,
-    default: '#3b82f6' // Default blue color
+
+  planId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Schedule",
+    default:null
+  
   },
-  type: {
-    type: String,
-    enum: ['lecture', 'lab', 'tutorial', 'exam', 'other'],
-    default: 'lecture'
+
+  color:{
+    type:String,
+    default:"#3b82f6"
   },
-  description: {
-    type: String,
-    trim: true
+
+  type:{
+    type:String,
+    enum:["plan","reservation"],
+    default:"plan"
   },
-  notes: {
-    type: String,
-    trim: true
+
+  notes:{
+    type:String,
+    trim:true
   },
+
   status:{
- type:String,
- enum:[
-   "booked",
-   "checkedin",
-   "completed",
-   "cancelled"
- ],
- default:"booked"
-},
-  // For recurring events
-  isRecurring: {
-    type: Boolean,
-    default: false
-  },
-  recurringPattern: {
-    type: String,
-    enum: ['daily', 'weekly', 'monthly', null],
-    default: null
+    type:String,
+    enum:[
+      "planned",
+      "reserved",
+      "checkedin",
+      "completed",
+      "cancelled"
+    ],
+    default:"planned"
   }
-}, {
-  timestamps: true
+
+},{
+  timestamps:true
 });
 
-scheduleSchema.index({ date: 1, dayOfWeek: 1 });
-scheduleSchema.index({ instructor: 1, date: 1 });
+scheduleSchema.index({ userId:1, date:1 });
+scheduleSchema.index({ date:1, dayOfWeek:1 });
 
-module.exports = mongoose.model('Schedule', scheduleSchema);
+scheduleSchema.index(
+{
+  seatItemId:1,
+  date:1,
+  "timeSlot.startTime":1
+},
+{
+  unique:true,
+  partialFilterExpression:{ type:"reservation" }
+}
+);
+
+module.exports = mongoose.model("Schedule",scheduleSchema);
