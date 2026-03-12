@@ -50,7 +50,7 @@ useEffect(() => {
       const map = new Map();
       const now = new Date();
 
-      data.forEach(s => {
+      (Array.isArray(data) ? data : []).forEach(s => {
         const startTimeStr = s.timeSlot?.startTime || "0";
         const endTimeStr = s.timeSlot?.endTime || "0";
 
@@ -66,7 +66,7 @@ useEffect(() => {
         if(now >= start && now < end) status = "checkedin";
         else if(now >= end) status = "completed";
 
-        map.set(String(s.room), status);
+        map.set(String(s.seatItemId), status);
       });
 
       setTakenSeats(map);
@@ -77,7 +77,7 @@ useEffect(() => {
   };
 
   loadBookedSeats();
-  const interval = setInterval(loadBookedSeats, 3000);
+  const interval = setInterval(loadBookedSeats, 15000);
   return () => clearInterval(interval);
 }, []);
 
@@ -216,7 +216,7 @@ const handleDeleteSelected = async () => {
 
   const handlePick = (itemId) => {
   // ถ้าไม่ใช่ Admin และที่นั่งถูกจองแล้ว ให้กดไม่ได้
-  if (!isAdmin && takenSeats.has(itemId)) return; 
+  if (!isAdmin && takenSeats.has(String(itemId))) return;
   
   setSelectedSeat(itemId); // เซตค่าสำหรับการจอง
   if (isAdmin) setSelectedItemId(itemId); // เซตค่าสำหรับการจัดการ (ลบ/ย้าย)
@@ -287,8 +287,10 @@ const startDrag = (e, it) => {
 
     /* ===== Clamp inside frame ===== */
     if (frame) {
-      const maxX = frame.offsetWidth - 60;
-      const maxY = frame.offsetHeight - 60;
+      const seatSize = 60;
+
+      const maxX = frame.offsetWidth - seatSize;
+      const maxY = frame.offsetHeight - seatSize;
 
       newLeft = Math.max(0, Math.min(maxX, newLeft));
       newTop = Math.max(0, Math.min(maxY, newTop));
@@ -517,7 +519,7 @@ const startDrag = (e, it) => {
 
 
   
-  const status = takenSeats.get(it._id);
+  const status = takenSeats.get(String(it._id));
   const isTaken = status === "booked" || status === "checkedin";
   const isSelected = selectedSeat === it._id;
 
@@ -563,7 +565,11 @@ const startDrag = (e, it) => {
           Selected: <b>{selectedSeatName || "-"}</b>
         </div>
 
-        <button className="confirm-btn" onClick={handleConfirm}>
+        <button
+          className="confirm-btn"
+          onClick={handleConfirm}
+          disabled={!selectedSeat}
+        >
           Confirm Reservation
         </button>
       </div>
