@@ -22,6 +22,9 @@ export default function AdminReservation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ดึงวันที่วันนี้ในรูปแบบ YYYY-MM-DD สำหรับใช้กับ attribute "min"
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -56,7 +59,7 @@ export default function AdminReservation() {
       } else {
         setFormData({
           name: location.state.name || "",
-          date: location.state.date || new Date().toISOString().split('T')[0],
+          date: location.state.date || todayStr,
           startTime: location.state.startTime || "09:00",
           duration: location.state.duration || "1"
         });
@@ -142,7 +145,7 @@ export default function AdminReservation() {
     }
   };
 
-  // --- สไตล์มินิมอลตามเรฟภาพ (มนและโทนเทา) ---
+  // สไตล์มินิมอลตามเรฟ
   const minimalInputStyle = {
     height: "38px",
     borderRadius: "8px",
@@ -159,8 +162,21 @@ export default function AdminReservation() {
   const minimalSelectStyle = {
     ...minimalInputStyle,
     cursor: "pointer",
-    backgroundColor: "#fcfcfc", // เทาอ่อนนิดๆ ให้เข้ากับเรฟ
+    backgroundColor: "#fcfcfc",
     appearance: "auto" 
+  };
+
+  // Logic สำหรับกรองเวลาที่จองได้
+  const getAvailableHours = () => {
+    const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // ถ้าเป็นวันที่ปัจจุบัน ให้กรองเอาเฉพาะชั่วโมงที่มากกว่าเวลาปัจจุบัน
+    if (formData.date === todayStr) {
+      return hours.filter(h => h > currentHour);
+    }
+    return hours;
   };
 
   return (
@@ -170,7 +186,7 @@ export default function AdminReservation() {
         <button className="btn-add" onClick={() => { 
           setEditingBooking(null); 
           setSelectedSeatFromMap(""); 
-          setFormData({ name: "", date: new Date().toISOString().split('T')[0], startTime: "09:00", duration: "1" });
+          setFormData({ name: "", date: todayStr, startTime: "09:00", duration: "1" });
           setIsModalOpen(true); 
         }}>+ จองให้นิสิต</button>
       </div>
@@ -212,8 +228,6 @@ export default function AdminReservation() {
             <p style={{ fontSize: "13px", color: "#8c8c8c", marginBottom: "25px" }}>กรุณากรอกรายละเอียดการจองที่นั่งให้ครบถ้วน</p>
             
             <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-              
-              {/* แถว 1: ชื่อนิสิต และ ที่นั่ง (มินิมอลเหมือนกัน) */}
               <div className="info-group">
                 <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>รหัสนิสิต / ชื่อ</label>
                 <input 
@@ -234,12 +248,12 @@ export default function AdminReservation() {
                 </div>
               </div>
 
-              {/* แถว 2: วันที่ และ เริ่มเวลา */}
               <div className="info-group">
                 <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>วันที่</label>
                 <input 
                   type="date" 
                   style={minimalInputStyle}
+                  min={todayStr} // [BLOCK] ป้องกันการเลือกวันย้อนหลัง
                   value={editingBooking ? editingBooking.date : formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
                   disabled={!!editingBooking}
@@ -253,31 +267,50 @@ export default function AdminReservation() {
                   value={formData.startTime} 
                   onChange={(e) => setFormData({...formData, startTime: e.target.value})}
                 >
-                  {[9,10,11,12,13,14,15,16,17,18].map(h => (
-                    <option key={h} value={`${h < 10 ? '0'+h : h}:00`}>{h}:00 น.</option>
-                  ))}
+                  {getAvailableHours().length > 0 ? (
+                    getAvailableHours().map(h => (
+                      <option key={h} value={`${h < 10 ? '0'+h : h}:00`}>{h}:00 น.</option>
+                    ))
+                  ) : (
+                    <option value="">ไม่มีเวลาที่จองได้</option>
+                  )}
                 </select>
               </div>
 
-              {/* แถว 3: ระยะเวลา (เทาโทนเดียวกับช่องอื่น) */}
               <div className="info-group">
                 <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>ระยะเวลา</label>
                 <select 
                   style={minimalSelectStyle}
                   value={formData.duration} 
                   onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                  disabled={getAvailableHours().length === 0}
                 >
                   <option value="1">1 ชม.</option>
                   <option value="2">2 ชม.</option>
                   <option value="3">3 ชม.</option>
                 </select>
               </div>
-
             </div>
 
             <div style={{ marginTop: "35px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)} style={{ height: "40px", padding: "0 20px", border: "1px solid #d9d9d9", background: "#fff", borderRadius: "8px", cursor: "pointer" }}>ยกเลิก</button>
-              <button className="btn-add" onClick={handleSave} style={{ height: "40px", padding: "0 25px", background: "#22c55e", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>บันทึกข้อมูล</button>
+              <button 
+                className="btn-add" 
+                onClick={handleSave} 
+                disabled={getAvailableHours().length === 0 && !editingBooking}
+                style={{ 
+                  height: "40px", 
+                  padding: "0 25px", 
+                  background: (getAvailableHours().length === 0 && !editingBooking) ? "#ccc" : "#22c55e", 
+                  color: "#fff", 
+                  border: "none", 
+                  borderRadius: "8px", 
+                  cursor: (getAvailableHours().length === 0 && !editingBooking) ? "not-allowed" : "pointer", 
+                  fontWeight: "500" 
+                }}
+              >
+                บันทึกข้อมูล
+              </button>
             </div>
           </div>
         </div>
