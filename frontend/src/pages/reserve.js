@@ -104,12 +104,12 @@ export default function Reserve() {
   }, [today, weekOffset]);
 
   const cancelCountThisMonth = useMemo(() => {
-    const now = new Date();
-    return cancelHistory.filter(item => {
-      const d = new Date(item.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-  }, [cancelHistory]);
+  const now = new Date();
+  return cancelHistory.filter(item => {
+    const d = new Date(item.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+}, [cancelHistory]);
 
   const isSlotDisabled = (day, hour) => {
     if (day.getDay() === 0 || day < today || day > maxDate) return true;
@@ -122,13 +122,36 @@ export default function Reserve() {
     return false;
   };
 
-  const handleConfirmDelete = () => {
-    setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
-    setCancelHistory((prev) => [...prev, { date: new Date().toISOString() }]);
-    setShowCancelPopup(false);
-    setSelectedBooking(null);
-  };
+  // ฟังก์ชันยกเลิกการจองแบบเชื่อมต่อ API
+  const handleConfirmDelete = async () => {
+    try {
+      // 1. ส่ง Request ไปลบข้อมูลใน DB (เพื่อให้แอดมินเห็น)
+      const res = await fetch(`http://localhost:3001/api/schedules/${selectedBooking.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" }
+      });
 
+      if (!res.ok) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+
+      // 2. อัปเดต State ในเครื่อง
+      setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
+      
+      // 3. บันทึกประวัติการยกเลิก (นับเพิ่ม 1)
+      setCancelHistory((prev) => [...prev, { date: new Date().toISOString() }]);
+
+      setShowCancelPopup(false);
+      setSelectedBooking(null);
+      alert("ยกเลิกการจองสำเร็จ ข้อมูลถูกส่งไปที่แอดมินแล้ว");
+
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการยกเลิก แต่ระบบจะลบข้อมูลในเครื่องให้ก่อน");
+      // Fallback ลบในเครื่องถ้า API พัง
+      setBookings((prev) => prev.filter((b) => b.id !== selectedBooking.id));
+      setShowCancelPopup(false);
+    }
+  };
+  
   const handleSubmitAll = async () => {
     if (draftBookings.some(b => !(b.seatItemId || b.seatId))) {
       alert("กรุณาเลือกโต๊ะให้ครบทุก Draft ก่อน");

@@ -12,6 +12,8 @@ export default function AdminReservation() {
   const [editingBooking, setEditingBooking] = useState(null);
   
   const [selectedSeatFromMap, setSelectedSeatFromMap] = useState("");
+  const [selectedSeatId, setSelectedSeatId] = useState(""); // เพิ่มเพื่อเก็บ ID จริงของที่นั่ง
+  
   const [formData, setFormData] = useState({
     name: "",
     date: new Date().toISOString().split('T')[0],
@@ -22,44 +24,50 @@ export default function AdminReservation() {
   const navigate = useNavigate();
   const location = useLocation();
   const todayStr = new Date().toISOString().split('T')[0];
+  const currentMonthThai = new Date().toLocaleDateString('th-TH', { month: 'short' });
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       const response = await axios.get(API_BASE_URL);
+      
       const mappedBookings = response.data.map(b => {
         const calculated = calculateStatus(b.date, b.timeSlot, b.status);
         return {
           id: b._id,
           name: b.title || "N/A", 
-          studentId: b.instructor?.username || "N/A", 
-          // เก็บทั้ง ID จริง (roomId) และชื่อที่โชว์ (seat)
-          roomId: b.room && typeof b.room === 'object' ? b.room._id : b.room,
-          seat: b.room && typeof b.room === 'object' 
-                ? (b.room.meta?.name || b.room._id) 
-                : (b.room || "-"),
+          studentId: b.instructor?.username || b.instructor?.studentId || "N/A", 
+          cancelCount: b.instructor?.monthlyCancelCount || 0,
+          roomId: b.room?._id || b.room,
+          seat: b.room?.meta?.name || b.room?.name || b.room || "-",
           date: new Date(b.date).toLocaleDateString('en-CA'),
           time: b.timeSlot ? `${b.timeSlot.startTime}-${b.timeSlot.endTime}` : "N/A",
           status: calculated,
-          rawTimeSlot: b.timeSlot // เก็บก้อนดิบไว้ใช้ตอนแก้ไข
+          rawTimeSlot: b.timeSlot
         };
       });
       setAllBookings(mappedBookings.sort((a, b) => new Date(b.date) - new Date(a.date)));
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error) { 
+      console.error("Fetch Error:", error); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => {
     if (location.state?.seatName) {
       setSelectedSeatFromMap(location.state.seatName);
+      setSelectedSeatId(location.state.seatId); // รับ ID จริงมาจาก SeatMap
       setIsModalOpen(true); 
+      
       if (location.state.id) {
         const original = allBookings.find(b => b.id === location.state.id);
         if (original) {
           setEditingBooking(original);
           setFormData({
-            name: original.name,
-            date: original.date,
-            startTime: original.time.split('-')[0],
+            name: location.state.name || original.name,
+            date: location.state.date || original.date,
+            startTime: location.state.startTime || original.time.split('-')[0],
             duration: location.state.duration || "1"
           });
         }
@@ -95,8 +103,10 @@ export default function AdminReservation() {
 
   const handleSave = async () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+    
+    // ตรวจสอบข้อมูลเบื้องต้น
     if (!selectedSeatFromMap || !formData.name) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
+      alert("กรุณากรอกข้อมูลและเลือกที่นั่งให้ครบถ้วน!");
       return;
     }
 
@@ -104,11 +114,8 @@ export default function AdminReservation() {
     const endHour = startHour + parseInt(formData.duration);
     const endTimeStr = `${endHour < 10 ? '0' + endHour : endHour}:00`;
 
-    // ค้นหาข้อมูลเดิมเพื่อดึง Room ID ที่ถูกต้องส่งกลับไป (ป้องกัน Error 400)
-    const originalBooking = allBookings.find(b => b.id === editingBooking?.id);
-    const roomToSave = (selectedSeatFromMap === originalBooking?.seat) 
-                       ? originalBooking.roomId 
-                       : selectedSeatFromMap;
+    // ใช้ ID ที่นั่ง (รหัส 24 หลัก) เท่านั้น ห้ามส่งชื่อตัวอักษรไป
+    const roomToSave = selectedSeatId || editingBooking?.roomId;
 
     const payload = {
       title: formData.name,
@@ -123,27 +130,40 @@ export default function AdminReservation() {
 
     try {
       if (editingBooking?.id) {
+        // เคสแก้ไข
         await axios.put(`${API_BASE_URL}/${editingBooking.id}`, payload);
       } else {
-        // สำหรับเพิ่มใหม่ ถ้า backend บังคับใส่ instructor
-        payload.instructor = { username: user.username || "admin" };
+        // เคสจองใหม่: ต้องส่ง instructor เป็น ObjectID ไม่ใช่ String "admin"
+        // ถ้า Admin จองให้ตัวเอง หรือจองกลาง ให้ใช้ user._id จากระบบ Login
+        payload.instructor = user._id || user.id; 
+        
+        if (!payload.instructor) {
+          alert("Error: ไม่พบข้อมูลผู้ใช้งาน (Admin ID) กรุณา Login ใหม่");
+          return;
+        }
+
         await axios.post(API_BASE_URL, payload);
       }
+      
       alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
       setIsModalOpen(false);
+      setEditingBooking(null);
       fetchBookings();
     } catch (err) { 
       console.error("Save Error Details:", err.response?.data);
-      alert(err.response?.data?.message || "ไม่สามารถบันทึกข้อมูลได้ (Error 400: ข้อมูลไม่ถูกต้อง)"); 
+      const errorMsg = err.response?.data?.message || "ข้อมูลไม่ถูกต้อง (Check Console)";
+      alert(`ไม่สามารถบันทึกได้: ${errorMsg}`); 
     }
   };
 
   const handleCancel = async (id) => {
-    if (window.confirm("คุณแน่ใจหรือไม่ที่จะลบรายการนี้?")) {
+    if (window.confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกการจองรายการนี้?")) {
       try {
         await axios.delete(`${API_BASE_URL}/${id}`);
         fetchBookings();
-      } catch (err) { alert("ลบไม่สำเร็จ"); }
+      } catch (err) { 
+        alert("ยกเลิกการจองไม่สำเร็จ"); 
+      }
     }
   };
 
@@ -174,17 +194,6 @@ export default function AdminReservation() {
     outline: "none", width: "100%", boxSizing: "border-box"
   };
 
-  const minimalSelectStyle = { ...minimalInputStyle, cursor: "pointer", backgroundColor: "#fcfcfc", appearance: "auto" };
-
-  const getAvailableHours = () => {
-    const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-    if (formData.date === todayStr) {
-      const currentHour = new Date().getHours();
-      return hours.filter(h => h > currentHour);
-    }
-    return hours;
-  };
-
   return (
     <div className="student-list-container">
       <div className="list-header">
@@ -192,6 +201,7 @@ export default function AdminReservation() {
         <button className="btn-add" onClick={() => { 
           setEditingBooking(null); 
           setSelectedSeatFromMap(""); 
+          setSelectedSeatId("");
           setFormData({ name: "", date: todayStr, startTime: "09:00", duration: "1" });
           setIsModalOpen(true); 
         }}>+ จองให้นิสิต</button>
@@ -206,7 +216,8 @@ export default function AdminReservation() {
             <th>วันที่</th>
             <th>เวลา</th>
             <th>สถานะ</th>
-            <th style={{ textAlign: "center" }}>จัดการ</th>
+            <th style={{ textAlign: "center" }}>จำนวนการยกเลิก</th>
+            <th style={{ textAlign: "center", width: "140px" }}>จัดการ</th>
           </tr>
         </thead>
         <tbody>
@@ -218,19 +229,31 @@ export default function AdminReservation() {
               <td>{b.date}</td>
               <td>{b.time}</td>
               <td><span className={`status-badge ${getStatusClass(b.status)}`}>{b.status}</span></td>
+              <td style={{ textAlign: "center", color: b.cancelCount >= 3 ? "#ff4d4f" : "#666" }}>
+                <strong>{b.cancelCount}/3</strong> {currentMonthThai}
+              </td>
               <td style={{ textAlign: "center" }}>
-                <button className="btn-nav" onClick={() => { 
-                  setEditingBooking(b); 
-                  setSelectedSeatFromMap(b.seat);
-                  setFormData({
-                    name: b.name,
-                    date: b.date,
-                    startTime: b.time.split('-')[0],
-                    duration: "1"
-                  });
-                  setIsModalOpen(true); 
-                }}>แก้ไข</button>
-                <button className="btn-nav" style={{ color: "#ff4d4f" }} onClick={() => handleCancel(b.id)}>ลบ</button>
+                <div style={{ display: "flex", justifyContent: "center", gap: "15px", alignItems: "center" }}>
+                  <button className="btn-nav" onClick={() => { 
+                    setEditingBooking(b); 
+                    setSelectedSeatFromMap(b.seat);
+                    setSelectedSeatId(b.roomId);
+                    setFormData({
+                      name: b.name,
+                      date: b.date,
+                      startTime: b.time.split('-')[0],
+                      duration: "1"
+                    });
+                    setIsModalOpen(true); 
+                  }}>แก้ไข</button>
+                  <button 
+                    className="btn-nav" 
+                    style={{ color: "#ff4d4f", background: "none", border: "none", cursor: "pointer", fontWeight: "bold" }} 
+                    onClick={() => handleCancel(b.id)}
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -240,12 +263,12 @@ export default function AdminReservation() {
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="info-card" style={{ width: "550px", padding: "30px", borderRadius: "15px" }}>
-            <h2 style={{ marginBottom: "5px", fontSize: "1.3rem" }}>{editingBooking ? "แก้ไขการจอง" : "เพิ่มการจองใหม่"}</h2>
-            <p style={{ fontSize: "13px", color: "#8c8c8c", marginBottom: "25px" }}>กรุณากรอกรายละเอียดการจองที่นั่งให้ครบถ้วน</p>
+            <h2>{editingBooking ? "แก้ไขการจอง" : "เพิ่มการจองใหม่"}</h2>
+            <p style={{ fontSize: "13px", color: "#8c8c8c", marginBottom: "25px" }}>กรุณากรอกรายละเอียดการจองให้ครบถ้วน</p>
             
             <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
               <div className="info-group">
-                <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>รหัสนิสิต / ชื่อ</label>
+                <label>รหัสนิสิต / ชื่อ</label>
                 <input 
                   type="text"
                   style={minimalInputStyle}
@@ -255,15 +278,15 @@ export default function AdminReservation() {
               </div>
 
               <div className="info-group">
-                <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>ที่นั่งที่เลือก</label>
+                <label>ที่นั่งที่เลือก</label>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <input readOnly value={selectedSeatFromMap} placeholder="ที่นั่ง" style={{ ...minimalInputStyle, flex: 1, backgroundColor: "#f5f5f5" }} />
-                  <button type="button" className="btn-select-seat" onClick={goToSeatMap} style={{ width: "65px", height: "38px", borderRadius: "8px", backgroundColor: "#22c55e", color: "white", border: "none", cursor: "pointer" }}>เลือก</button>
+                  <input readOnly value={selectedSeatFromMap} placeholder="คลิกเลือกที่นั่ง" style={{ ...minimalInputStyle, flex: 1, backgroundColor: "#f5f5f5" }} />
+                  <button type="button" onClick={goToSeatMap} style={{ width: "65px", borderRadius: "8px", backgroundColor: "#22c55e", color: "white", border: "none", cursor: "pointer" }}>เลือก</button>
                 </div>
               </div>
 
               <div className="info-group">
-                <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>วันที่</label>
+                <label>วันที่</label>
                 <input 
                   type="date" 
                   style={minimalInputStyle}
@@ -274,26 +297,22 @@ export default function AdminReservation() {
               </div>
 
               <div className="info-group">
-                <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>เริ่มเวลา</label>
+                <label>เริ่มเวลา</label>
                 <select 
-                  style={minimalSelectStyle}
+                  style={minimalInputStyle}
                   value={formData.startTime} 
                   onChange={(e) => setFormData({...formData, startTime: e.target.value})}
                 >
-                  {getAvailableHours().length > 0 ? (
-                    getAvailableHours().map(h => (
-                      <option key={h} value={`${h < 10 ? '0'+h : h}:00`}>{h}:00 น.</option>
-                    ))
-                  ) : (
-                    <option value="">ไม่มีเวลาที่จองได้</option>
-                  )}
+                  {[9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+                    <option key={h} value={`${h < 10 ? '0'+h : h}:00`}>{h}:00 น.</option>
+                  ))}
                 </select>
               </div>
 
               <div className="info-group">
-                <label style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}>ระยะเวลา</label>
+                <label>ระยะเวลา</label>
                 <select 
-                  style={minimalSelectStyle}
+                  style={minimalInputStyle}
                   value={formData.duration} 
                   onChange={(e) => setFormData({...formData, duration: e.target.value})}
                 >
@@ -305,16 +324,10 @@ export default function AdminReservation() {
             </div>
 
             <div style={{ marginTop: "35px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button className="btn-icon" onClick={() => setIsModalOpen(false)} style={{ height: "40px", padding: "0 20px", border: "1px solid #d9d9d9", background: "#fff", borderRadius: "8px", cursor: "pointer" }}>ยกเลิก</button>
+              <button onClick={() => setIsModalOpen(false)} style={{ height: "40px", padding: "0 20px", border: "1px solid #d9d9d9", background: "#fff", borderRadius: "8px", cursor: "pointer" }}>ยกเลิก</button>
               <button 
-                className="btn-add" 
                 onClick={handleSave} 
-                style={{ 
-                  height: "40px", padding: "0 25px", 
-                  background: "#22c55e", 
-                  color: "#fff", border: "none", borderRadius: "8px", 
-                  cursor: "pointer", fontWeight: "500" 
-                }}
+                style={{ height: "40px", padding: "0 25px", background: "#22c55e", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" }}
               >
                 บันทึกข้อมูล
               </button>
