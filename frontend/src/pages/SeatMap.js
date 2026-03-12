@@ -42,7 +42,6 @@ useEffect(() => {
 
 
 useEffect(() => {
-
   const loadBookedSeats = async () => {
     try {
       const res = await fetch("http://localhost:3001/api/schedules");
@@ -52,11 +51,16 @@ useEffect(() => {
       const now = new Date();
 
       data.forEach(s => {
-        const startTime = s.timeSlot?.startTime || "0";
-        const endTime = s.timeSlot?.endTime || "0";
+        const startTimeStr = s.timeSlot?.startTime || "0";
+        const endTimeStr = s.timeSlot?.endTime || "0";
 
-        start.setHours(parseInt(startTime), 0, 0, 0);
-        end.setHours(parseInt(endTime), 0, 0, 0);
+        // ✅ แก้ไข: ต้องสร้าง Object Date ใหม่ก่อนเรียกใช้ .setHours
+        const start = new Date();
+        const end = new Date();
+
+        start.setHours(parseInt(startTimeStr), 0, 0, 0);
+        end.setHours(parseInt(endTimeStr), 0, 0, 0);
+        
         let status = "booked";
 
         if(now >= start && now < end) status = "checkedin";
@@ -72,14 +76,9 @@ useEffect(() => {
     }
   };
 
-  // โหลดครั้งแรก
   loadBookedSeats();
-
-  // 🔁 polling ทุก 5 วินาที
   const interval = setInterval(loadBookedSeats, 3000);
-
   return () => clearInterval(interval);
-
 }, []);
 
 
