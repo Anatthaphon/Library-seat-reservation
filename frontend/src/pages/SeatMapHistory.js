@@ -9,6 +9,23 @@ export default function SeatMapHistory() {
   const [adminFilter, setAdminFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  const [selectedLog, setSelectedLog] = useState(null);
+
+  const getSeatStyle = (pos) => {
+
+  if (!pos) return {};
+
+  const [x, y] = pos.split(",").map(Number);
+
+  const scale = 0.5;   // ลดขนาดพิกัด
+
+  return {
+    position: "absolute",
+    left: x * scale + "px",
+    top: y * scale + "px"
+  };
+
+};
   /* ================= LOAD DATA ================= */
   useEffect(() => {
     const loadHistory = async () => {
@@ -110,7 +127,7 @@ export default function SeatMapHistory() {
       {/* TABLE */}
       <div className="history-table-wrapper">
         <table className="history-table">
-          <thead>
+          <thead className="history-table-header">
             <tr>
               <th>Date</th>
               <th>Admin</th>
@@ -123,7 +140,7 @@ export default function SeatMapHistory() {
           </thead>
           <tbody>
             {filteredLogs.length === 0 && (
-              <tr>
+              <tr >
                 <td colSpan="7" className="empty">
                   No history found.
                 </td>
@@ -131,7 +148,7 @@ export default function SeatMapHistory() {
             )}
 
             {filteredLogs.map((log) => (
-              <tr key={log._id}>
+              <tr key={log._id} className={`row-${log.actionType?.toLowerCase()}`}>
                 <td>{formatDate(log.createdAt)}</td>
                 <td>{log.adminName}</td>
                 <td>{log.actionType}</td>
@@ -142,16 +159,118 @@ export default function SeatMapHistory() {
                 <td>{log.after || "-"}</td>
 
                 <td>
-                  <button className="view-btn">
+                  <button
+                    className="view-btn"
+                    onClick={() => setSelectedLog(log)}
+                  >
                     View
                   </button>
                 </td>
               </tr>
             ))}
 
+            
           </tbody>
         </table>
       </div>
+      {selectedLog && (
+  <div className="seatmap-modal">
+
+    <div className="seatmap-container">
+        <button
+          className="seatmap-close-btn"
+          onClick={() => setSelectedLog(null)}
+        >
+          ✕
+        </button>
+      
+
+      <h3 className="seatmap-title">
+        Seat Map Change
+      </h3>
+
+      <div className="seatmap-canvas">
+        
+        {/* ชั้นหนังสือ */}
+        <div className="shelf">ชั้นหนังสือ</div>
+
+        {/* ทางหนีไฟ */}
+        <div className="exit">ทางหนีไฟ</div>
+
+        {/* ห้องควบคุมไฟฟ้า */}
+        <div className="electric">ห้องควบคุมไฟฟ้า</div>
+
+        {/* ADD */}
+        {selectedLog.actionType === "ADD" && selectedLog.after && (
+          <div
+            className="seat add-seat"
+            style={getSeatStyle(selectedLog.after)}
+          >
+            {selectedLog.seatName}
+          </div>
+        )}
+
+        {/* DELETE */}
+        {selectedLog.actionType === "DELETE" && selectedLog.before && (
+          <div
+            className="seat delete-seat"
+            style={getSeatStyle(selectedLog.before)}
+          >
+            {selectedLog.seatName}
+          </div>
+        )}
+
+        {/* MOVE */}
+        {selectedLog.actionType === "MOVE" && (
+          <>
+            {selectedLog.before && (
+              <div
+                className="seat move-before"
+                style={getSeatStyle(selectedLog.before)}
+              >
+                {selectedLog.seatName}
+              </div>
+            )}
+
+            {selectedLog.after && (
+              <div
+                className="seat move-after"
+                style={getSeatStyle(selectedLog.after)}
+              >
+                {selectedLog.seatName}
+              </div>
+            )}
+          </>
+        )}
+        
+      </div>
+        <div className="seatmap-legend">
+
+  <div className="legend-item">
+    <span className="legend-box add"></span>
+    ADD
+  </div>
+
+  <div className="legend-item">
+    <span className="legend-box delete"></span>
+    DELETE
+  </div>
+
+  <div className="legend-item">
+    <span className="legend-box before"></span>
+    Before Move
+  </div>
+
+  <div className="legend-item">
+    <span className="legend-box after"></span>
+    After Move
+  </div>
+
+</div>
+    </div>
+
+  </div>
+)}
 
     </div>
   );
