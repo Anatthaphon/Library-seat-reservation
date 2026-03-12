@@ -24,26 +24,26 @@ const WeeklyCalendar = ({ schedules, onEventClick, onCellClick, currentDate }) =
   };
 
   const getSchedulesForDay = (dayIndex) => {
-    const targetDate = getDateForDay(dayIndex);
+  const targetDate = getDateForDay(dayIndex);
 
-    return schedules.filter(schedule => {
-      const scheduleDate = new Date(schedule.date);
+  return schedules.filter(schedule => {
+    const d = new Date(schedule.date);
 
-      const schedLocal = new Date(
-        scheduleDate.getFullYear(),
-        scheduleDate.getMonth(),
-        scheduleDate.getDate()
-      );
+    const localScheduleDate = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate()
+    );
 
-      const targetLocal = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate()
-      );
+    const localTargetDate = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate()
+    );
 
-      return schedLocal.getTime() === targetLocal.getTime();
-    });
-  };
+    return localScheduleDate.getTime() === localTargetDate.getTime();
+  });
+};
 
   const getEventPosition = (startTime) => {
     const [hours] = startTime.split(':').map(Number);
