@@ -52,12 +52,11 @@ useEffect(() => {
       const now = new Date();
 
       data.forEach(s => {
-        const start = new Date(s.date);
-        start.setHours(parseInt(s.timeSlot.startTime),0,0,0);
+        const startTime = s.timeSlot?.startTime || "0";
+        const endTime = s.timeSlot?.endTime || "0";
 
-        const end = new Date(s.date);
-        end.setHours(parseInt(s.timeSlot.endTime),0,0,0);
-
+        start.setHours(parseInt(startTime), 0, 0, 0);
+        end.setHours(parseInt(endTime), 0, 0, 0);
         let status = "booked";
 
         if(now >= start && now < end) status = "checkedin";
@@ -217,32 +216,37 @@ const handleDeleteSelected = async () => {
 
 
   const handlePick = (itemId) => {
-  if (takenSeats.has(itemId)) return;
-  setSelectedSeat(itemId);
+  // ถ้าไม่ใช่ Admin และที่นั่งถูกจองแล้ว ให้กดไม่ได้
+  if (!isAdmin && takenSeats.has(itemId)) return; 
+  
+  setSelectedSeat(itemId); // เซตค่าสำหรับการจอง
+  if (isAdmin) setSelectedItemId(itemId); // เซตค่าสำหรับการจัดการ (ลบ/ย้าย)
 };
 
 
 
-  const handleConfirm = () => {
-    if (!selectedSeat) {
-      alert("กรุณาเลือกที่นั่งก่อนค่ะ");
-      return;
-    }
-    const seat = items.find(i => i._id === selectedSeat);
-    navigate(returnTo, {
-      replace: true,
-      state: {
-        id: state.id,
-        date: state.date,
-        startTime: state.startTime,
-        endTime: state.endTime,
-        seatItemId: selectedSeat,
-        seatName: seat?.meta?.name,
-        subject: state.subject || "",
-      },
-    });
-  };
+ const handleConfirm = () => {
+  if (!selectedSeat) {
+    alert("กรุณาเลือกที่นั่งก่อนค่ะ");
+    return;
+  }
 
+  const seat = items.find(i => i._id === selectedSeat);
+
+  navigate(returnTo, {
+    replace: true,
+    state: {
+      id: state?.id,          // ใส่ ?. กันตาย
+      name: state?.name,      // ใส่ ?. กันตาย
+      date: state?.date,      // ใส่ ?. กันตาย
+      startTime: state?.startTime,
+      endTime: state?.endTime,
+      subject: state?.subject || "", 
+      seatItemId: selectedSeat,
+      seatName: seat?.meta?.name,
+    },
+  });
+};
   const getColorByDay = (dateObj) => {
   const d = dateObj.getDay();
   const dayColors = {
@@ -263,6 +267,7 @@ const startDrag = (e, it) => {
 
   e.stopPropagation();
   setSelectedItemId(it._id);
+  setSelectedSeat(it._id);
 
   const startX = e.clientX;
   const startY = e.clientY;
@@ -541,10 +546,7 @@ const startDrag = (e, it) => {
   onMouseDown={(e) => {
     if (isAdmin) startDrag(e, it);
   }}
-  onClick={() => {
-    if (isAdmin) setSelectedItemId(it._id);
-    else handlePick(it._id);
-  }}
+  onClick={() => handlePick(it._id)}
   disabled={!isAdmin && isTaken}
 >
 
