@@ -207,4 +207,45 @@
   top: 4px;
   right: 6px;
 }
+.checkin-notice {
+  display: flex;
+  flex-direction: column;    /* เรียงข้อความบน ปุ่มล่าง */
+  justify-content: center;   /* ✅ กลางแนวตั้ง */
+  align-items: center;       /* ✅ กลางแนวนอน */
+  padding: 25px 30px;
+  background: #fefefe;
+  border: 4px solid #2e7d32;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  max-width: 1200px;
+  margin: 20px auto 40px auto;
+  line-height: 1.8;
+  color: #ff4d4f;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;       /* สำหรับข้อความหลายบรรทัด */
+}
 
+.checkin-notice button {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 14px 0;
+  width: 100%;          /* ยาวเต็มกล่อง */
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+  cursor: pointer;
+  margin-top: auto;     /* ปุ่มไหลลงล่างสุดของกล่อง */
+}
+
+.checkin-notice button:hover {
+  background-color: #1b5e20;
+}
+
+.checkin-notice button:disabled {
+  background-color: #bdbdbd;   /* สีเทา */
+  cursor: not-allowed;         /* เมาส์เป็นเครื่องหมายห้าม */
+  color: #ffffff;
+}
