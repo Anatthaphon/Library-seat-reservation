@@ -173,7 +173,7 @@ const Planning = () => {
   }
 
   navigate("/reserve", {
-    state: { drafts: validPlans }
+    state: { drafts: validPlans || [] }
   });
 };
 
@@ -191,12 +191,23 @@ const Planning = () => {
 
   const loadSchedules = async () => {
     try {
-      // ✅ สำคัญ: ใช้ local date ไม่ใช้ toISOString (UTC) เพื่อไม่ให้ week เพี้ยน
-      const dateStr = formatLocalDate(currentDate);
-      const response = await scheduleAPI.getByWeek(dateStr);
 
-      setSchedules(response.data);
+      const dateStr = formatLocalDate(currentDate);
+
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      const response = await scheduleAPI.getByWeek(
+        `${dateStr}?userId=${user._id || user.id}`
+      );
+
+      setSchedules(
+        response.data
+          ?.filter(s => s?.type === "plan")
+          .sort((a,b)=> new Date(a.date) - new Date(b.date))
+      );
+
       console.log('Loaded schedules:', response.data);
+
     } catch (error) {
       console.error('Error loading schedules:', error);
     }
@@ -246,7 +257,12 @@ const Planning = () => {
         return;
       }
 
-      const user = { id: '65842827e4b00a1234567890', fullName: 'Mock User' };
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if(!user){
+        alert("กรุณาเข้าสู่ระบบก่อน");
+        return;
+      }
 
       const duration = parseInt(eventData.timeSpent) || 1;
 
@@ -289,29 +305,34 @@ const Planning = () => {
       }
 
       // ✅ เก็บเป็น ISO แต่ fix เป็นเที่ยง (กัน timezone เลื่อนวันตอนเก็บ)
-      const localISOString = new Date(
+      const localDate = new Date(
         eventDate.getFullYear(),
         eventDate.getMonth(),
-        eventDate.getDate(),
-        12, 0, 0, 0
-      ).toISOString();
+        eventDate.getDate()
+      );
+
+      console.log("USER:", user);
+      console.log("USER ID:", user?._id);
 
       const scheduleData = {
-        title: eventData.title || selectedEvent?.title || 'Event',
+        userId: user._id || user.id,
+        title: eventData.title?.trim() || "New Plan",
         notes: eventData.notes || '',
-        date: localISOString,
+        date: new Date(
+          eventDate.getFullYear(),
+          eventDate.getMonth(),
+          eventDate.getDate(),
+          12,0,0
+        ),
         dayOfWeek: eventDate.getDay(),
         timeSlot: {
           startTime: `${startHour.toString().padStart(2, '0')}:00`,
           endTime: `${endHour.toString().padStart(2, '0')}:00`,
         },
         duration,
-        instructor: user?.id,
-        instructorName: user?.fullName || 'Unknown',
-        room: selectedEvent?.room || `Room ${Math.floor(Math.random() * 400) + 100}`,
         color: getColorByDay(eventDate),
-        type: 'lecture',
-        status: 'booked',
+        type: 'plan',
+        status: 'planned'
       };
 
       if (selectedEvent) {
