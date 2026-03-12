@@ -42,52 +42,42 @@ export default function Reserve() {
     localStorage.setItem("cancelHistory", JSON.stringify(cancelHistory));
   }, [cancelHistory]);
 
-  useEffect(() => {
-  if (!location.state?.seatItemId) return;
-  const incoming = location.state;
-
-  const formatToHourNumber = (t) => {
-    if (typeof t === "number") return t;
-    return parseInt(String(t).split(":")[0], 10);
-  };
-
-  const newBooking = {
-    ...incoming,
-    id: incoming.id || Date.now() + Math.random(),
-    seatId: incoming.seatItemId || incoming.seatId,
-    seatName: incoming.seatName,
-    startTime: formatToHourNumber(incoming.startTime),
-    endTime: formatToHourNumber(incoming.endTime),
-    date:
-      incoming.date instanceof Date
-        ? incoming.date.toISOString()
-        : incoming.date,
-  };
-
-  setDraftBookings((prev) => {
-    const index = prev.findIndex(b => b.id === newBooking.id);
-
-    if (index !== -1) {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], ...newBooking };
-      return updated;
-    }
-
-    return [...prev, newBooking];
+  const [draftBookings, setDraftBookings] = useState(() => {
+    const saved = localStorage.getItem("draftBookings");
+    return saved ? JSON.parse(saved) : [];
   });
 
-  window.history.replaceState({}, document.title);
-}, [location.state]);
+  useEffect(() => {
+    if (location.state?.drafts) {
 
+      const newDrafts = location.state.drafts.map(d => ({
+        ...d,
+        id: Date.now() + Math.random(),
+        date: typeof d.date === "string" ? d.date : new Date(d.date).toISOString(),
+        startTime: parseInt(d.startTime),
+        endTime: parseInt(d.endTime)
+      }));
 
+      setDraftBookings(prev => {
+        const merged = [...prev, ...newDrafts];
+        return merged.filter(
+          (v,i,a)=>
+            a.findIndex(x =>
+              x.date===v.date &&
+              x.startTime===v.startTime
+            )===i
+        );
+      });
 
-  const cancelCountThisMonth = useMemo(() => {
-    const now = new Date();
-    return cancelHistory.filter(item => {
-      const d = new Date(item.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-  }, [cancelHistory]);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
+  }, [draftBookings]);
+
+  const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
 
   const today = useMemo(() => {
     const d = new Date();
@@ -113,52 +103,14 @@ export default function Reserve() {
     });
   }, [today, weekOffset]);
 
-  const [draftBookings, setDraftBookings] = useState(() => {
-  const saved = localStorage.getItem("draftBookings");
-  return saved ? JSON.parse(saved) : [];
-});
+  const cancelCountThisMonth = useMemo(() => {
+    const now = new Date();
+    return cancelHistory.filter(item => {
+      const d = new Date(item.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+  }, [cancelHistory]);
 
-useEffect(() => {
-  if (location.state?.drafts) {
-
-    const newDrafts = location.state.drafts.map(d => ({
-      ...d,
-      id: Date.now() + Math.random(),
-      date: typeof d.date === "string" ? d.date : new Date(d.date).toISOString(),
-      startTime: parseInt(d.startTime),
-      endTime: parseInt(d.endTime)
-    }));
-
-    setDraftBookings(prev => {
-      const merged = [...prev, ...newDrafts];
-
-      // กันซ้ำ
-      return merged.filter(
-        (v,i,a)=>
-          a.findIndex(x =>
-            x.date===v.date &&
-            x.startTime===v.startTime
-          )===i
-      );
-    });
-
-    // เคลียร์ state กัน refresh ซ้ำ
-    window.history.replaceState({}, document.title);
-  }
-}, [location.state]);
-
-
-
-
-  useEffect(() => {
-  localStorage.setItem("draftBookings", JSON.stringify(draftBookings));
-}, [draftBookings]);
-
-
-  // ✅ แก้ไข: แสดงแถวแค่ 9:00 - 17:00 (แถวสุดท้ายคือ 17:00-18:00)
-  const hours = Array.from({ length: 9 }, (_, i) => 9 + i); 
-
-  // ✅ แก้ไข: ปิดการจองถ้าเวลาผ่านไปแล้ว หรือเกิน 10 นาทีแรก
   const isSlotDisabled = (day, hour) => {
     if (day.getDay() === 0 || day < today || day > maxDate) return true;
     const now = new Date();
@@ -179,50 +131,40 @@ useEffect(() => {
 
   const handleSubmitAll = async () => {
     if (draftBookings.some(b => !(b.seatItemId || b.seatId))) {
-  alert("กรุณาเลือกโต๊ะให้ครบทุก Draft ก่อน");
-  return;
-}
+      alert("กรุณาเลือกโต๊ะให้ครบทุก Draft ก่อน");
+      return;
+    }
 
-  try {
-    const res = await fetch("http://localhost:3001/api/schedules/bulk", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        bookings: draftBookings.map(b => ({
-          date: b.date,
-          seatItemId: b.seatItemId || b.seatId,
-          subject: b.subject || "",
-          startTime: b.startTime,
-          endTime: b.endTime
-        }))
+    try {
+      const res = await fetch("http://localhost:3001/api/schedules/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookings: draftBookings.map(b => ({
+            date: b.date,
+            seatItemId: b.seatItemId || b.seatId,
+            subject: b.subject || "",
+            startTime: b.startTime,
+            endTime: b.endTime
+          }))
         })
+      });
 
-    });
-    
+      if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
 
+      setBookings(prev => [...prev, ...draftBookings]);
+      setDraftBookings([]);
+      localStorage.removeItem("draftBookings");
+      alert("จองสำเร็จทั้งหมดแล้ว");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+    }
+  };
 
-    if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ");
-
-    // ย้าย draft ไป bookings จริง
-    setBookings(prev => [...prev, ...draftBookings]);
-
-    // ล้าง draft
-    setDraftBookings([]);
-    localStorage.removeItem("draftBookings");
-
-    alert("จองสำเร็จทั้งหมดแล้ว");
-  } catch (err) {
-    console.error(err);
-    alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
-  }
-};
-const handleDeleteDraft = (id) => {
-  setDraftBookings(prev => prev.filter(b => b.id !== id));
-};
-
-
+  const handleDeleteDraft = (id) => {
+    setDraftBookings(prev => prev.filter(b => b.id !== id));
+  };
 
   return (
     <div className="reserve-page">
@@ -236,6 +178,7 @@ const handleDeleteDraft = (id) => {
         </div>
       </div>
 
+      {/* Calendar */}
       <div className="calendar-scroll">
         <div className="week-nav">
           <button onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
@@ -279,7 +222,6 @@ const handleDeleteDraft = (id) => {
                   >
                     {startingBookings.map((b) => {
                       const isDraft = draftBookings.some(d => d.id === b.id);
-
                       return (
                         <BookingBlock
                           key={b.id}
@@ -288,23 +230,15 @@ const handleDeleteDraft = (id) => {
                           past={new Date(b.date).setHours(parseInt(b.endTime)) < new Date()}
                           onShowDetails={(booking) => {
                             if (isDraft) {
-
-                              // เปิด popup แก้ draft
-                              setDraft({
-                                ...booking,
-                                date: new Date(booking.date)
-                              });
-
+                              setDraft({ ...booking, date: new Date(booking.date) });
                             } else {
                               setSelectedBooking(booking);
                               setShowViewPopup(true);
                             }
                           }}
-
                         />
                       );
                     })}
-
                   </div>
                 );
               })}
@@ -312,96 +246,60 @@ const handleDeleteDraft = (id) => {
           ))}
         </div>
       </div>
-      
-      {draftBookings.length > 0 && (
-  <div style={{ marginTop: 20, textAlign: "center" }}>
-    <button
-      className="confirm-btn"
-      onClick={handleSubmitAll}
-    >
-      Confirm All Reservations ({draftBookings.length})
-    </button>
-  </div>
-)}
-      
 
+      {/* Confirm All Drafts Button */}
+      {draftBookings.length > 0 && (
+        <div style={{ marginTop: 20, textAlign: "center" }}>
+          <button className="confirm-btn" onClick={handleSubmitAll}>
+            Confirm All Reservations ({draftBookings.length})
+          </button>
+        </div>
+      )}
+
+      {/* Cancel Policy Notice */}
       <div className="cancel-policy-notice">
         * การยกเลิกการจองสามารถทำได้สูงสุด 3 ครั้งต่อเดือนเท่านั้น
       </div>
 
-      
+      {/* Check-in Notice with Button */}
+<div className="checkin-notice">
+  <button onClick={() => alert("เริ่ม Check-in ได้เลย!")}>
+    Check-in
+  </button>
+  <div>
+     เมื่อถึงเวลาที่ท่านจองเข้าใช้งาน กรุณา Check-in โดยการสแกน QR code ที่อยู่หน้าห้องก่อนเข้าใช้งาน<br/>
+     ท่านสามารถ Check-in ได้เมื่อถึงเวลาที่ท่านจองภายใน 10 นาทีแรกเท่านั้น<br/>
+     มิเช่นนั้นการจองของท่านจะถือเป็นโมฆะ และจะระงับสิทธิ์การจองของท่านเป็นเวลา 3 วัน<br/>
+     (เช่น จองเวลา 09:00 น. สามารถ Check-in ได้ในเวลา 09:00 - 09:10 เท่านั้น)
+  </div>
+</div>
 
-{draft && (
-  <ReservePopup
-    data={draft}
-    allBookings={bookings}
-
-    onClose={() => setDraft(null)}
-
-    onDelete={() => {
-      setDraftBookings(prev => prev.filter(b => b.id !== draft.id));
-      setDraft(null);
-    }}
-
-    onAccept={(final) => {
-      const newDraft = {
-        ...final,
-        seatId: final.seatId,
-        date: final.date.toISOString(),
-        id: Date.now() + Math.random()
-      };
-
-      setDraftBookings(prev => {
-        const index = prev.findIndex(b =>
-          b.date === newDraft.date &&
-          b.startTime === newDraft.startTime
-        );
-
-        if (index !== -1) {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], ...newDraft };
-          return updated;
-        }
-
-        return [...prev, newDraft];
-      });
-
-      setDraft(null);
-    }}
-
-    onSelectSeat={(curr) =>
-      navigate("/seatmap", {
-        state: {
-          ...curr,
-          id: draft?.id,   // ⭐ สำคัญมาก
-          date: curr.date.toISOString(),
-          returnTo: "/reserve"
-        }
-      })
-    }
-  />
-)}
-
-
-
-      {showViewPopup && (
-        <ViewBookingPopup
-          booking={selectedBooking}
-          onClose={() => { setShowViewPopup(false); setSelectedBooking(null); }}
-          onDelete={() => {
-            if (cancelCountThisMonth >= MAX_CANCEL_PER_MONTH) {
-              alert(`คุณยกเลิกครบ ${MAX_CANCEL_PER_MONTH} ครั้งแล้ว`);
-              return;
-            }
-            setShowViewPopup(false);
-            setShowCancelPopup(true);
-          }}
-        />
-      )}
-
-      {showCancelPopup && (
-        <CancelPopup onCancel={() => setShowCancelPopup(false)} onConfirm={handleConfirmDelete} />
-      )}
+      {/* Popups */}
+      {draft && <ReservePopup
+        data={draft}
+        allBookings={bookings}
+        onClose={() => setDraft(null)}
+        onDelete={() => { setDraftBookings(prev => prev.filter(b => b.id !== draft.id)); setDraft(null); }}
+        onAccept={(final) => {
+          const newDraft = { ...final, seatId: final.seatId, date: final.date.toISOString(), id: Date.now() + Math.random() };
+          setDraftBookings(prev => {
+            const index = prev.findIndex(b => b.date === newDraft.date && b.startTime === newDraft.startTime);
+            if (index !== -1) { const updated = [...prev]; updated[index] = { ...updated[index], ...newDraft }; return updated; }
+            return [...prev, newDraft];
+          });
+          setDraft(null);
+        }}
+        onSelectSeat={(curr) => navigate("/seatmap", { state: { ...curr, id: draft?.id, date: curr.date.toISOString(), returnTo: "/reserve" } })}
+      />}
+      {showViewPopup && <ViewBookingPopup
+        booking={selectedBooking}
+        onClose={() => { setShowViewPopup(false); setSelectedBooking(null); }}
+        onDelete={() => {
+          if (cancelCountThisMonth >= MAX_CANCEL_PER_MONTH) { alert(`คุณยกเลิกครบ ${MAX_CANCEL_PER_MONTH} ครั้งแล้ว`); return; }
+          setShowViewPopup(false); setShowCancelPopup(true);
+        }}
+      />}
+      {showCancelPopup && <CancelPopup onCancel={() => setShowCancelPopup(false)} onConfirm={handleConfirmDelete} />}
     </div>
   );
 }

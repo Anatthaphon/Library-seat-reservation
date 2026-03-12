@@ -207,4 +207,38 @@
   top: 4px;
   right: 6px;
 }
+.checkin-notice {
+  color: #d35400;               /* ตัวหนังสือสีเขียวเข้ม */
+  font-size: 18px;              
+  font-weight: 800;
+  text-align: left;             
+  max-width: 1200px;             
+  margin: 20px auto 40px auto;  
+  padding: 20px 25px;           /* เพิ่ม Padding ให้กล่องใหญ่ขึ้น */
+  line-height: 1.6;             
+  box-sizing: border-box;       
+  background: #ffffff;          /* สีพื้นอ่อนเขียว */
+  border: 3px solid #2e7d32;   /* ✅ กรอบสีเขียวใหญ่ */
+  border-radius: 12px;          /* ขอบมนสวย */
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1); /* เงาเล็ก */
+  
+  display: flex;               
+  align-items: flex-start;     
+  gap: 20px;                   /* ช่องว่างระหว่างปุ่มกับข้อความ */
+}
 
+.checkin-notice button {
+  background-color: #2e7d32;   
+  color: white;
+  border: none;
+  padding: 14px 22px;           /* ทำปุ่มใหญ่ขึ้น */
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;              
+}
+
+.checkin-notice button:hover {
+  background-color: #1b5e20;
+}
