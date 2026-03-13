@@ -15,6 +15,8 @@ router.get('/range/:startDate/:endDate', scheduleController.getSchedulesByDateRa
 // Get schedules by week
 router.get('/week/:date', scheduleController.getSchedulesByWeek);
 
+router.patch("/checkin/:id", scheduleController.checkInReservation);
+
 // Get schedules by instructor
 router.get('/instructor/:instructorId', scheduleController.getSchedulesByInstructor);
 
