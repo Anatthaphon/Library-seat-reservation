@@ -10,7 +10,7 @@ export default function Reserve() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const MAX_CANCEL_PER_MONTH = 100; 
+  const MAX_CANCEL_PER_MONTH = 3; 
 
   const [bookings,setBookings] = useState([]);
   
