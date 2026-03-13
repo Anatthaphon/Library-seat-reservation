@@ -20,14 +20,12 @@ export default function StudentInfo() {
       setLoading(true);
       const response = await axios.get(`${API_BASE_URL}/schedules`);
       
-      // กรองออก: ไม่เอาสถานะ 'planned'
       const reservedOnly = response.data.filter(item => 
         item.status && item.status.toLowerCase() !== "planned"
       );
 
       const mappedData = reservedOnly.map(item => {
         const rawStatus = item.status?.toLowerCase();
-        // เงื่อนไขใหม่: ถ้าเป็น booked ให้เป็น booked (สีเขียว) นอกนั้นเป็น inactive (สีเทา)
         const displayStatus = rawStatus === "booked" ? "booked" : "inactive";
 
         return {
@@ -128,6 +126,7 @@ export default function StudentInfo() {
   if (loading) return <div className="loading" style={{ padding: "20px" }}>กำลังโหลดข้อมูล...</div>;
 
   if (selectedStudent) {
+    // แก้ไขตรงนี้: ดึงแค่เดือนและปี พ.ศ.
     const monthLabel = currentViewDate.toLocaleString('th-TH', { month: 'long', year: 'numeric' });
     const filteredHistory = studentBookings.filter(b => {
       if (!b.date) return false;
@@ -155,7 +154,8 @@ export default function StudentInfo() {
             <div style={{ width: '150px' }}></div> 
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <button onClick={handlePrevMonth} style={arrowButtonStyle}>⟨</button>
-              <h3 style={{ margin: 0, minWidth: '180px', textAlign: 'center' }}>ประวัติการจอง ({monthLabel})</h3>
+              {/* แก้ไขตรงนี้: เอาคำว่าประวัติการจองและวงเล็บออก */}
+              <h3 style={{ margin: 0, minWidth: '180px', textAlign: 'center' }}>{monthLabel}</h3>
               <button onClick={handleNextMonth} style={arrowButtonStyle}>⟩</button>
             </div>
             <div style={{ width: '150px', textAlign: 'right', fontWeight: '600' }}>
@@ -164,11 +164,14 @@ export default function StudentInfo() {
           </div>
 
           <table className="history-table">
-            <thead>
-              <tr style={{ backgroundColor: '#2e7d32', color: 'white' }}>
-                <th>วันที่</th><th>ที่นั่ง</th><th>สถานะ</th>
-              </tr>
-            </thead>
+          <thead>
+            {/* เพิ่ม !important เพื่อบังคับสี และใส่ border-radius เล็กน้อยถ้าต้องการ */}
+            <tr style={{ backgroundColor: '#1b5e20', color: 'white' }}>
+              <th style={{ color: 'white', backgroundColor: '#1b5e20' }}>วันที่</th>
+              <th style={{ color: 'white', backgroundColor: '#1b5e20' }}>ที่นั่ง</th>
+              <th style={{ color: 'white', backgroundColor: '#1b5e20' }}>สถานะ</th>
+            </tr>
+          </thead>
             <tbody>
               {filteredHistory.length > 0 ? (
                 filteredHistory.map((b, i) => (
@@ -211,7 +214,8 @@ export default function StudentInfo() {
 
       <table className="main-student-table">
         <thead>
-          <tr>
+          {/* แก้ไขตรงนี้: หัวตารางหลักสีเขียว ตัวหนังสือสีขาว */}
+          <tr style={{ backgroundColor: '#22c55e', color: 'white' }}>
             <th style={{ width: '40px' }}>
               <input 
                 type="checkbox" 
@@ -219,11 +223,10 @@ export default function StudentInfo() {
                 checked={selectedIds.length === sortedStudents.length && sortedStudents.length > 0} 
               />
             </th>
-            <th onClick={() => handleSort("name")} style={{ cursor: 'pointer' }}>Name ↑↓</th>
-            <th onClick={() => handleSort("studentNumber")} style={{ cursor: 'pointer' }}>Student Number ↑↓</th>
-            <th>Email</th>
-            {/* คอลัมน์ Seat ถูกลบออกแล้ว */}
-            <th>Status</th>
+            <th onClick={() => handleSort("name")} style={{ cursor: 'pointer', color: 'white' }}>Name ↑↓</th>
+            <th onClick={() => handleSort("studentNumber")} style={{ cursor: 'pointer', color: 'white' }}>Student Number ↑↓</th>
+            <th style={{ color: 'white' }}>Email</th>
+            <th style={{ color: 'white' }}>Status</th>
           </tr>
         </thead>
         <tbody>
