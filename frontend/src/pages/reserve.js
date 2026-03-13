@@ -28,6 +28,7 @@ export default function Reserve() {
   const [showViewPopup, setShowViewPopup] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [canCheckIn, setCanCheckIn] = useState(false);
 
   // ----------------- EFFECTS -----------------
   // Update time
@@ -73,6 +74,25 @@ export default function Reserve() {
   useEffect(() => {
     loadBookings();
   }, []);
+
+  useEffect(() => {
+  const now = new Date();
+
+  const can = bookings.some(b => {
+    const bookingDate = new Date(b.date);
+
+    const start = new Date(bookingDate);
+    start.setHours(parseInt(b.startTime), 0, 0, 0);
+
+    const endCheckIn = new Date(start);
+    endCheckIn.setMinutes(endCheckIn.getMinutes() + 10);
+
+    return now >= start && now <= endCheckIn;
+  });
+
+  setCanCheckIn(can);
+
+}, [currentTime, bookings]);
 
   // ----------------- DRAFT FROM LOCATION -----------------
   useEffect(() => {
@@ -272,9 +292,26 @@ export default function Reserve() {
       </div>
 
       {/* Check-in Notice */}
+      
       <div className="checkin-notice">
-        <button onClick={() => alert("เริ่ม Check-in ได้เลย!")}>Check-in</button>
-        <div>
+  <button
+    disabled={!canCheckIn}
+    onClick={() => {
+      if (!canCheckIn) return;
+      alert("Check-in สำเร็จ");
+    }}
+    style={{
+      backgroundColor: canCheckIn ? "#28a745" : "#9e9e9e",
+      color: "white",
+      padding: "10px 20px",
+      border: "none",
+      borderRadius: "8px",
+      cursor: canCheckIn ? "pointer" : "not-allowed"
+    }}
+  >
+    Check-in
+  </button>
+       <div>
           เมื่อถึงเวลาที่ท่านจองเข้าใช้งาน กรุณา Check-in โดยการสแกน QR code ที่อยู่หน้าห้องก่อนเข้าใช้งาน<br/>
           ท่านสามารถ Check-in ได้เมื่อถึงเวลาที่ท่านจองภายใน 10 นาทีแรกเท่านั้น<br/>
           มิเช่นนั้นการจองของท่านจะถือเป็นโมฆะ และจะระงับสิทธิ์การจองของท่านเป็นเวลา 3 วัน<br/>
