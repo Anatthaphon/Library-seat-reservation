@@ -130,7 +130,45 @@ exports.getSchedulesByDateRange = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+exports.checkInReservation = async (req,res)=>{
+  try{
 
+    const { id } = req.params;
+
+    const schedule = await Schedule.findById(id);
+
+    if(!schedule){
+      return res.status(404).json({error:"Reservation not found"});
+    }
+
+    const now = new Date();
+
+    const start = new Date(schedule.date);
+    const startHour = parseInt(schedule.timeSlot.startTime.split(":")[0]);
+
+    start.setHours(startHour,0,0,0);
+
+    const limit = new Date(start);
+    limit.setMinutes(limit.getMinutes()+10);
+
+    if(now < start){
+      return res.status(400).json({error:"Too early to check in"});
+    }
+
+    if(now > limit){
+      return res.status(400).json({error:"Check-in time expired"});
+    }
+
+    schedule.status = "checkedin";
+
+    await schedule.save();
+
+    res.json(schedule);
+
+  }catch(err){
+    res.status(500).json({error:err.message});
+  }
+};
 // Get schedules by week
 exports.getSchedulesByWeek = async (req, res) => {
   try {
@@ -231,6 +269,7 @@ exports.createBulkSchedules = async (req, res) => {
 
       // ⭐ ตรวจสอบการจองชนกัน
       const conflicts = await Schedule.find({
+        seatName:b.seatName, 
         seatItemId: seatId,
         date: date,
         type: "reservation"
