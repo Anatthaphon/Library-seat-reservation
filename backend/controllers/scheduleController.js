@@ -7,11 +7,15 @@ exports.getAllSchedules = async (req, res) => {
 
     const userId = req.query.userId;
 
-    const schedules = await Schedule.find({
-      userId: userId
-    })
-    .populate('userId', 'username email fullName')
-    .sort({ date: 1, 'timeSlot.startTime': 1 });
+    let query = {};
+
+    if (userId) {
+      query.userId = userId;
+    }
+
+    const schedules = await Schedule.find(query)
+      .populate('userId', 'username email fullName')
+      .sort({ date: 1, 'timeSlot.startTime': 1 });
 
     res.json(schedules);
 

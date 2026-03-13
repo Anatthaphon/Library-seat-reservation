@@ -94,9 +94,7 @@ export default function SeatMapHistory() {
           <p>Track and review changes made to the seat map here.</p>
         </div>
 
-        <button className={styles["primary-btn"]}>
-          + Add New Entry
-        </button>
+        
 
       </div>
 
