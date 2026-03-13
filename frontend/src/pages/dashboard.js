@@ -25,14 +25,7 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="section">
-        <h2>แผนผังห้องสมุด ชั้น 2</h2>
-        <p className="section-subtitle">พื้นที่สำหรับผังที่นั่ง</p>
-        <div className="layout-placeholder">
-          พื้นที่สำหรับผังที่นั่ง
-        </div>
-      </section>
-
+      
       <div 
         className="reservation-preview"
         onClick={() => navigate("/reserve")}
