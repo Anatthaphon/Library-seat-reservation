@@ -42,44 +42,62 @@ useEffect(() => {
 
 
 useEffect(() => {
+
   const loadBookedSeats = async () => {
+
     try {
+
       const res = await fetch("http://localhost:3001/api/schedules");
-      const data = await res.json();
+      const schedules = await res.json();
 
       const map = new Map();
-      const now = new Date();
 
-      (Array.isArray(data) ? data : []).forEach(s => {
-        const startTimeStr = s.timeSlot?.startTime || "0";
-        const endTimeStr = s.timeSlot?.endTime || "0";
+      const selectedDate = new Date(state.date);
+      const selectedHour = parseInt(String(state.startTime).split(":")[0]);
 
-        // ✅ แก้ไข: ต้องสร้าง Object Date ใหม่ก่อนเรียกใช้ .setHours
-        const start = new Date();
-        const end = new Date();
+      selectedDate.setHours(selectedHour,0,0,0);
 
-        start.setHours(parseInt(startTimeStr), 0, 0, 0);
-        end.setHours(parseInt(endTimeStr), 0, 0, 0);
-        
-        let status = "booked";
+      (Array.isArray(schedules) ? schedules : []).forEach(s => {
 
-        if(now >= start && now < end) status = "checkedin";
-        else if(now >= end) status = "completed";
+        // ใช้เฉพาะ reservation จริง
+        if (s.type !== "reservation") return;
+        if (s.status !== "reserved" && s.status !== "checkedin") return;
 
-        map.set(String(s.seatItemId), status);
+        const startHour = parseInt((s.timeSlot?.startTime || "0").split(":")[0]);
+        const endHour = parseInt((s.timeSlot?.endTime || "0").split(":")[0]);
+
+        // ใช้วันเดียวกับที่เลือก (แก้ timezone bug)
+        const start = new Date(state.date);
+        start.setHours(startHour,0,0,0);
+
+        const end = new Date(state.date);
+        end.setHours(endHour,0,0,0);
+
+        const seatId = s.seatItemId?._id || s.seatItemId;
+
+        if(selectedDate >= start && selectedDate < end){
+
+          map.set(String(seatId),"reserved");
+
+        }
+
       });
 
       setTakenSeats(map);
 
-    } catch (err) {
-      console.error(err);
+    } catch(err){
+      console.error("loadBookedSeats error:",err);
     }
+
   };
 
   loadBookedSeats();
-  const interval = setInterval(loadBookedSeats, 15000);
+
+  const interval = setInterval(loadBookedSeats,5000);
+
   return () => clearInterval(interval);
-}, []);
+
+},[state?.date,state?.startTime]);
 
 
   
@@ -520,7 +538,9 @@ const startDrag = (e, it) => {
 
   
   const status = takenSeats.get(String(it._id));
-  const isTaken = status === "booked" || status === "checkedin";
+  const isTaken =
+  status === "reserved" ||
+  status === "checkedin";
   const isSelected = selectedSeat === it._id;
 
 
@@ -532,7 +552,7 @@ const startDrag = (e, it) => {
     "seat-abs",
     it.zone === "B" ? "seat-b" : "",
     it.size === "tiny" ? "seat-tiny" : "",
-    status === "booked" ? "seat-booked" :
+    status === "reserved" ? "seat-booked" :
     status === "checkedin" ? "seat-checkedin" :
     "seat-available",
     isSelected ? "selected" : "",
