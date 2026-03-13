@@ -14,7 +14,7 @@ exports.getAllSchedules = async (req, res) => {
     }
 
     const schedules = await Schedule.find(query)
-      .populate('userId', 'username email fullName')
+      .populate('userId', 'studentId name surname email')
       .sort({ date: 1, 'timeSlot.startTime': 1 });
 
     res.json(schedules);
@@ -27,8 +27,9 @@ exports.getAllSchedules = async (req, res) => {
 // Get schedule by ID
 exports.getScheduleById = async (req, res) => {
   try {
-    const schedule = await Schedule.findById(req.params.id)
-      .populate('userId', 'username email fullName');
+    const schedules = await Schedule.find()
+      .populate("userId", "studentId name surname email")
+      .sort({ date: 1, "timeSlot.startTime": 1 });
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }

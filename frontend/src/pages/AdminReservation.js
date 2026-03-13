@@ -35,11 +35,11 @@ export default function AdminReservation() {
         const calculated = calculateStatus(b.date, b.timeSlot, b.status);
         return {
           id: b._id,
-          name: b.title || "N/A", 
-          studentId: b.instructor?.username || b.instructor?.studentId || "N/A", 
-          cancelCount: b.instructor?.monthlyCancelCount || 0,
+          name: b.userId ? `${b.userId.name} ${b.userId.surname}` : "N/A",
+          studentId: b.userId?.studentId || "N/A",
+          cancelCount: b.userId?.monthlyCancelCount || 0,
           roomId: b.room?._id || b.room,
-          seat: b.room?.meta?.name || b.room?.name || b.room || "-",
+          seat: b.seatName || "-",
           date: new Date(b.date).toLocaleDateString('en-CA'),
           time: b.timeSlot ? `${b.timeSlot.startTime}-${b.timeSlot.endTime}` : "N/A",
           status: calculated,
