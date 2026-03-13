@@ -186,7 +186,7 @@
 
 /* ================= OBJECTS ================= */
 
-.shelf{
+.history-shelf{
   position:absolute;
   top:130px;
   left:160px;
@@ -199,7 +199,7 @@
   align-items:center;
 }
 
-.exit{
+.history-exit{
   position:absolute;
   top:20px;
   left:50%;
@@ -213,7 +213,7 @@
   align-items:center;
 }
 
-.electric{
+.history-electric{
   position:absolute;
   bottom:20px;
   right:30px;
@@ -228,7 +228,7 @@
 
 /* ================= SEAT ================= */
 
-.seat{
+.history-seat{
   position:absolute;
   padding:6px 10px;
   border-radius:6px;
