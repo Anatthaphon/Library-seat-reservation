@@ -8,185 +8,333 @@ const API_BASE_URL = "http://localhost:3001/api/schedules";
 export default function AdminReservation() {
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
+  
+  const [selectedSeatFromMap, setSelectedSeatFromMap] = useState("");
+  const [selectedSeatId, setSelectedSeatId] = useState(""); // เพิ่มเพื่อเก็บ ID จริงของที่นั่ง
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    date: new Date().toISOString().split('T')[0],
+    startTime: "09:00",
+    duration: "1"
+  });
+  
   const navigate = useNavigate();
   const location = useLocation();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const currentMonthThai = new Date().toLocaleDateString('th-TH', { month: 'short' });
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const currentMonthThai = new Date().toLocaleDateString("th-TH", { month: "short" });
-
-  /* ---------------- LOGIC: CALCULATE STATUS ---------------- */
-  // ฟังก์ชันนี้จะช่วยให้ Admin เห็นสถานะแบบ Real-time เหมือนนิสิต
-  const calculateAdminStatus = (bookingDate, timeSlot, dbStatus) => {
-    const now = new Date();
-    const bDate = new Date(bookingDate);
-    const currentStatus = String(dbStatus || "reserved").toLowerCase();
-
-    // 1. ถ้าใน DB มีสถานะเช็คอินหรือยกเลิกแล้ว ให้โชว์ตามนั้นเลย
-    if (["checkedin", "checked-in", "late", "cancelled"].includes(currentStatus)) {
-      return currentStatus === "checkedin" || currentStatus === "checked-in" 
-        ? "Checked-in" 
-        : currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
-    }
-
-    // 2. ถ้าสถานะยังเป็น reserved/booked ให้คำนวณตามเวลาจริง
-    let startH = timeSlot?.startTime || "00:00";
-    let endH = timeSlot?.endTime || "23:59";
-
-    const bStart = new Date(bDate).setHours(parseInt(startH), 0, 0, 0);
-    const bEnd = new Date(bDate).setHours(parseInt(endH), 0, 0, 0);
-    const checkInDeadline = new Date(bStart + 10 * 60000); // เส้นตาย 10 นาที
-
-    if (now > bEnd) return "Completed"; 
-    if (now > checkInDeadline) return "No Show"; // เลยเวลาเช็คอินแล้วแต่ยังไม่มา
-    if (now >= bStart && now <= checkInDeadline) return "Active (Waiting)";
-    
-    return "Booked"; 
-  };
-
-  /* ---------------- FETCH BOOKING ---------------- */
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/reservations`);
-
-      let bookings = [];
-      if (Array.isArray(res.data)) bookings = res.data;
-      else if (Array.isArray(res.data.data)) bookings = res.data.data;
-      else if (Array.isArray(res.data.bookings)) bookings = res.data.bookings;
-
-      const mapped = bookings.map((b) => {
-        // Mapping Student ID
-        let studentId = "N/A";
-        if (typeof b.userId === "object") {
-          studentId = b.userId.studentId || b.userId.username || b.userId._id?.slice(-6);
-        } else if (typeof b.userId === "string") {
-          studentId = b.userId.slice(-6);
-        }
-
-        // Mapping Seat Name
-        let seatName = "-";
-        if (typeof b.seatItemId === "object") {
-          seatName = b.seatItemId.name || b.seatItemId.meta?.name || b.seatItemId._id?.slice(-4);
-        } else if (typeof b.seatItemId === "string") {
-          seatName = "ID:" + b.seatItemId.slice(-4);
-        }
-
-        // Mapping Time
-        let start = b.timeSlot?.startTime || b.startTime || "00:00";
-        let end = b.timeSlot?.endTime || b.endTime || "00:00";
-
+      const response = await axios.get(API_BASE_URL);
+      
+      const mappedBookings = response.data.map(b => {
+        const calculated = calculateStatus(b.date, b.timeSlot, b.status);
         return {
           id: b._id,
-          name: b.title || b.subject || "ไม่ได้ระบุ",
-          studentId: studentId,
-          roomId: b.seatItemId?._id || b.seatItemId,
-          seat: seatName,
-          date: b.date ? new Date(b.date).toLocaleDateString("en-CA") : "N/A",
-          time: `${start.split(":")[0]}:00 - ${end.split(":")[0]}:00`,
-          // ใช้โลจิกคำนวณสเตตัสที่นี่
-          status: calculateAdminStatus(b.date, b.timeSlot, b.status),
+          name: b.userId ? `${b.userId.name} ${b.userId.surname}` : "N/A",
+          studentId: b.userId?.studentId || "N/A",
           cancelCount: b.userId?.monthlyCancelCount || 0,
+          roomId: b.room?._id || b.room,
+          seat: b.seatName || "-",
+          date: new Date(b.date).toLocaleDateString('en-CA'),
+          time: b.timeSlot ? `${b.timeSlot.startTime}-${b.timeSlot.endTime}` : "N/A",
+          status: calculated,
+          rawTimeSlot: b.timeSlot
         };
       });
-
-      setAllBookings(mapped.sort((a, b) => new Date(b.date) - new Date(a.date)));
-    } catch (err) {
-      console.error("FETCH ERROR", err);
-    } finally {
-      setLoading(false);
+      setAllBookings(mappedBookings.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    } catch (error) { 
+      console.error("Fetch Error:", error); 
+    } finally { 
+      setLoading(false); 
     }
   };
 
   useEffect(() => {
+    if (location.state?.seatName) {
+      setSelectedSeatFromMap(location.state.seatName);
+      setSelectedSeatId(location.state.seatId); // รับ ID จริงมาจาก SeatMap
+      setIsModalOpen(true); 
+      
+      if (location.state.id) {
+        const original = allBookings.find(b => b.id === location.state.id);
+        if (original) {
+          setEditingBooking(original);
+          setFormData({
+            name: location.state.name || original.name,
+            date: location.state.date || original.date,
+            startTime: location.state.startTime || original.time.split('-')[0],
+            duration: location.state.duration || "1"
+          });
+        }
+      } else {
+        setFormData({
+          name: location.state.name || "",
+          date: location.state.date || todayStr,
+          startTime: location.state.startTime || "09:00",
+          duration: location.state.duration || "1"
+        });
+      }
+    }
+  }, [location.state, allBookings]);
+
+  useEffect(() => {
     fetchBookings();
-    // อัปเดตข้อมูลทุก 1 นาที เพื่อให้สถานะ Active เปลี่ยนเป็น No Show โดยไม่ต้องกด Refresh
-    const timer = setInterval(fetchBookings, 60000);
+    const timer = setInterval(fetchBookings, 30000);
     return () => clearInterval(timer);
   }, []);
 
-  /* ---------------- DELETE ---------------- */
-  const handleCancel = async (id) => {
-    if (!window.confirm("ต้องการลบการจองนี้หรือไม่")) return;
+  const calculateStatus = (bookingDate, timeSlot, dbStatus) => {
+    const now = new Date(); 
+    const bDate = new Date(bookingDate);
+    if (String(dbStatus || "").toLowerCase() === "cancelled") return "Cancelled";
+    let sTime = timeSlot?.startTime || "00:00";
+    let eTime = timeSlot?.endTime || "23:59";
+    const bStart = new Date(bDate).setHours(parseInt(sTime), 0, 0, 0);
+    const bEnd = new Date(bDate).setHours(parseInt(eTime), 0, 0, 0);
+    if (now > bEnd) return "Completed";
+    if (now < bStart) return "Booked";
+    return "Active";
+  };
+
+  const handleSave = async () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    
+    // ตรวจสอบข้อมูลเบื้องต้น
+    if (!selectedSeatFromMap || !formData.name) {
+      alert("กรุณากรอกข้อมูลและเลือกที่นั่งให้ครบถ้วน!");
+      return;
+    }
+
+    const startHour = parseInt(formData.startTime);
+    const endHour = startHour + parseInt(formData.duration);
+    const endTimeStr = `${endHour < 10 ? '0' + endHour : endHour}:00`;
+
+    // ใช้ ID ที่นั่ง (รหัส 24 หลัก) เท่านั้น ห้ามส่งชื่อตัวอักษรไป
+    const roomToSave = selectedSeatId || editingBooking?.roomId;
+
+    const payload = {
+      title: formData.name,
+      date: formData.date,
+      room: roomToSave, 
+      timeSlot: {
+        startTime: formData.startTime,
+        endTime: endTimeStr
+      },
+      status: "booked"
+    };
+
     try {
-      await axios.delete(`${API_BASE_URL}/${id}`);
+      if (editingBooking?.id) {
+        // เคสแก้ไข
+        await axios.put(`${API_BASE_URL}/${editingBooking.id}`, payload);
+      } else {
+        // เคสจองใหม่: ต้องส่ง instructor เป็น ObjectID ไม่ใช่ String "admin"
+        // ถ้า Admin จองให้ตัวเอง หรือจองกลาง ให้ใช้ user._id จากระบบ Login
+        payload.instructor = user._id || user.id; 
+        
+        if (!payload.instructor) {
+          alert("Error: ไม่พบข้อมูลผู้ใช้งาน (Admin ID) กรุณา Login ใหม่");
+          return;
+        }
+
+        await axios.post(API_BASE_URL, payload);
+      }
+      
+      alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+      setIsModalOpen(false);
+      setEditingBooking(null);
       fetchBookings();
-    } catch (err) {
-      alert("ลบไม่สำเร็จ");
+    } catch (err) { 
+      console.error("Save Error Details:", err.response?.data);
+      const errorMsg = err.response?.data?.message || "ข้อมูลไม่ถูกต้อง (Check Console)";
+      alert(`ไม่สามารถบันทึกได้: ${errorMsg}`); 
     }
   };
 
-  /* ---------------- UI HELPER ---------------- */
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Checked-in": return { color: "#22c55e", fontWeight: "bold" };
-      case "Active (Waiting)": return { color: "#3b82f6", fontWeight: "bold" };
-      case "No Show": return { color: "#ef4444", fontWeight: "bold" };
-      case "Late": return { color: "#f59e0b", fontWeight: "bold" };
-      case "Completed": return { color: "#6b7280" };
-      default: return { color: "#374151" };
+  const handleCancel = async (id) => {
+    if (window.confirm("คุณแน่ใจหรือไม่ที่จะยกเลิกการจองรายการนี้?")) {
+      try {
+        await axios.delete(`${API_BASE_URL}/${id}`);
+        fetchBookings();
+      } catch (err) { 
+        alert("ยกเลิกการจองไม่สำเร็จ"); 
+      }
     }
+  };
+
+  const goToSeatMap = () => {
+    navigate("/seatmap", {
+      state: {
+        returnTo: "/admin-reservation",
+        id: editingBooking?.id,
+        name: formData.name,
+        date: formData.date,
+        startTime: formData.startTime,
+        duration: formData.duration
+      }
+    });
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "Active": return "check-in";
+      case "Booked": return "booked";
+      default: return "inactive";
+    }
+  };
+
+  const minimalInputStyle = {
+    height: "38px", borderRadius: "8px", border: "1px solid #dcdcdc",
+    padding: "0 12px", fontSize: "14px", color: "#333", backgroundColor: "#fff",
+    outline: "none", width: "100%", boxSizing: "border-box"
   };
 
   return (
     <div className="student-list-container">
       <div className="list-header">
         <h1>Admin Reservation Management</h1>
-        <button
-          className="btn-add"
-          onClick={() => navigate("/seatmap", { state: { returnTo: "/admin-reservation" } })}
-        >
-          + จองให้นิสิต
-        </button>
+        <button className="btn-add" onClick={() => { 
+          setEditingBooking(null); 
+          setSelectedSeatFromMap(""); 
+          setSelectedSeatId("");
+          setFormData({ name: "", date: todayStr, startTime: "09:00", duration: "1" });
+          setIsModalOpen(true); 
+        }}>+ จองให้นิสิต</button>
       </div>
 
       <table className="main-student-table">
         <thead>
           <tr>
-            <th>ชื่อ</th>
+            <th>ชื่อ-นามสกุล</th>
             <th>รหัสนิสิต</th>
             <th>ที่นั่ง</th>
             <th>วันที่</th>
             <th>เวลา</th>
             <th>สถานะ</th>
-            <th>ยกเลิก</th>
-            <th>จัดการ</th>
+            <th style={{ textAlign: "center" }}>จำนวนการยกเลิก</th>
+            <th style={{ textAlign: "center", width: "140px" }}>จัดการ</th>
           </tr>
         </thead>
-
         <tbody>
-          {allBookings.length > 0 ? (
-            allBookings.map((b) => (
-              <tr key={b.id}>
-                <td>{b.name}</td>
-                <td>{b.studentId}</td>
-                <td><strong>{b.seat}</strong></td>
-                <td>{b.date}</td>
-                <td>{b.time}</td>
-                <td style={getStatusStyle(b.status)}>{b.status}</td>
-                <td style={{ textAlign: "center" }}>
-                  <b>{b.cancelCount}/3</b> {currentMonthThai}
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <button
-                    className="btn-nav"
-                    style={{ color: "#ff4d4f", background: "none", border: "none", cursor: "pointer" }}
+          {allBookings.map((b) => (
+            <tr key={b.id}>
+              <td>{b.name}</td>
+              <td>{b.studentId}</td>
+              <td><strong>{b.seat}</strong></td>
+              <td>{b.date}</td>
+              <td>{b.time}</td>
+              <td><span className={`status-badge ${getStatusClass(b.status)}`}>{b.status}</span></td>
+              <td style={{ textAlign: "center", color: b.cancelCount >= 3 ? "#ff4d4f" : "#666" }}>
+                <strong>{b.cancelCount}/3</strong> {currentMonthThai}
+              </td>
+              <td style={{ textAlign: "center" }}>
+                <div style={{ display: "flex", justifyContent: "center", gap: "15px", alignItems: "center" }}>
+                  <button className="btn-nav" onClick={() => { 
+                    setEditingBooking(b); 
+                    setSelectedSeatFromMap(b.seat);
+                    setSelectedSeatId(b.roomId);
+                    setFormData({
+                      name: b.name,
+                      date: b.date,
+                      startTime: b.time.split('-')[0],
+                      duration: "1"
+                    });
+                    setIsModalOpen(true); 
+                  }}>แก้ไข</button>
+                  <button 
+                    className="btn-nav" 
+                    style={{ color: "#ff4d4f", background: "none", border: "none", cursor: "pointer", fontWeight: "bold" }} 
                     onClick={() => handleCancel(b.id)}
                   >
-                    ลบ
+                    ยกเลิก
                   </button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "#999" }}>
-                {loading ? "กำลังโหลดข้อมูล..." : "ไม่มีข้อมูลการจองในขณะนี้"}
+                </div>
               </td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
+
+      {isModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="info-card" style={{ width: "550px", padding: "30px", borderRadius: "15px" }}>
+            <h2>{editingBooking ? "แก้ไขการจอง" : "เพิ่มการจองใหม่"}</h2>
+            <p style={{ fontSize: "13px", color: "#8c8c8c", marginBottom: "25px" }}>กรุณากรอกรายละเอียดการจองให้ครบถ้วน</p>
+            
+            <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div className="info-group">
+                <label>รหัสนิสิต / ชื่อ</label>
+                <input 
+                  type="text"
+                  style={minimalInputStyle}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                />
+              </div>
+
+              <div className="info-group">
+                <label>ที่นั่งที่เลือก</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input readOnly value={selectedSeatFromMap} placeholder="คลิกเลือกที่นั่ง" style={{ ...minimalInputStyle, flex: 1, backgroundColor: "#f5f5f5" }} />
+                  <button type="button" onClick={goToSeatMap} style={{ width: "65px", borderRadius: "8px", backgroundColor: "#22c55e", color: "white", border: "none", cursor: "pointer" }}>เลือก</button>
+                </div>
+              </div>
+
+              <div className="info-group">
+                <label>วันที่</label>
+                <input 
+                  type="date" 
+                  style={minimalInputStyle}
+                  min={todayStr}
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                />
+              </div>
+
+              <div className="info-group">
+                <label>เริ่มเวลา</label>
+                <select 
+                  style={minimalInputStyle}
+                  value={formData.startTime} 
+                  onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                >
+                  {[9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+                    <option key={h} value={`${h < 10 ? '0'+h : h}:00`}>{h}:00 น.</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="info-group">
+                <label>ระยะเวลา</label>
+                <select 
+                  style={minimalInputStyle}
+                  value={formData.duration} 
+                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                >
+                  <option value="1">1 ชม.</option>
+                  <option value="2">2 ชม.</option>
+                  <option value="3">3 ชม.</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "35px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button onClick={() => setIsModalOpen(false)} style={{ height: "40px", padding: "0 20px", border: "1px solid #d9d9d9", background: "#fff", borderRadius: "8px", cursor: "pointer" }}>ยกเลิก</button>
+              <button 
+                onClick={handleSave} 
+                style={{ height: "40px", padding: "0 25px", background: "#22c55e", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" }}
+              >
+                บันทึกข้อมูล
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+} //admin
