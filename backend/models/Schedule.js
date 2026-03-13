@@ -48,6 +48,10 @@ const scheduleSchema = new mongoose.Schema({
     }
   },
 
+  seatName:{
+  type:String
+},
+
   planId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"Schedule",
