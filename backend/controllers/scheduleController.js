@@ -265,6 +265,7 @@ exports.createBulkSchedules = async (req, res) => {
         duration: endHour - startHour,
 
         seatItemId: seatId,
+        seatName:b.seatName,   
 
         type: "reservation",
 

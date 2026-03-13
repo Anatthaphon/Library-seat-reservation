@@ -32,13 +32,10 @@ exports.register = async (req,res)=>{
     }
 
     /* ===== HASH PASSWORD ===== */
-    const hash = await bcrypt.hash(password,10);
-
-    /* ===== CREATE USER ===== */
     const user = await User.create({
       studentId,
       email,
-      password:hash,
+      password,
       name,
       surname,
       telephone
